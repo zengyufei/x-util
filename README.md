@@ -136,33 +136,35 @@
         System.out.println("15. 反转list" + reversedList);
         System.out.println("15. 反转list校验" + roleList);
 
-        X.TryRun(() -> System.out.println("success"))
-                .andThen(() -> System.out.println("andThen next"))
+        X.TryRun(() -> System.out.print("16. success "))
+                .andThen(() -> System.out.print(" andThen next "))
                 .onFailure(error -> System.out.println("failure" + error.getMessage()))
                 .andFinally(() -> {
-                    System.out.println("finally");
+                    System.out.println(" finally! ");
                 });
 
+        System.out.print("17. 吞异常自行处理 ");
         X.Try(() -> 1 / 0)
                 .andThen(r -> System.out.println("and then " + r))
-                .onFailure(error -> System.out.println("failure" + error.getMessage()))
+                .onFailure(error -> System.out.print(" failure" + error.getMessage()))
                 .andFinally(() -> {
-                    System.out.println("finally");
+                    System.out.println(" finally! ");
                 });
 
+        System.out.print("18. try-finally 结构 ");
         X.Try(() -> 1 / 0)
-                .andThen(r -> System.out.println("and then " + r))
+                .andThen(r -> System.out.print("and then " + r))
                 .andFinally(() -> {
-                    System.out.println("finally");
+                    System.out.println(" finally! ");
                 });
 
+        System.out.print("19. 抛异常 ");
         X.Try(() -> 1 / 0)
                 .andThen(r -> System.out.println("and then " + r))
                 .onFailure(true)
                 .andFinally(() -> {
-                    System.out.println("finally");
+                    System.out.println(" finally! ");
                 });
-
     }
 ```
 
