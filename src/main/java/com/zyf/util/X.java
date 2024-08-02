@@ -1,11 +1,11 @@
 package com.zyf.util;
 
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-import java.io.Serializable;
+import java.io.*;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,6 +13,47 @@ import java.util.function.*;
 import java.util.stream.Collectors;
 
 public final class X {
+
+    public static <T> Diff<T> diff(List<T> oldList,
+                                   List<T> newList,
+                                   BiFunction<T, T, Boolean> keyExtractor) {
+        // 计算交集
+        List<T> updateList = oldList.stream()
+                .filter(s -> newList.stream().anyMatch(t -> keyExtractor.apply(t, s)))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        // 计算差集（新增的对象，即在新列表中，但是不在旧列表中的对象）
+        List<T> addList = newList.stream()
+                .filter(s -> updateList.stream().noneMatch(t -> keyExtractor.apply(t, s)))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        // 计算差集（删除的对象，即在旧列表中，但是不在新列表中的对象）
+        List<T> delList = oldList.stream()
+                .filter(s -> updateList.stream().noneMatch(t -> keyExtractor.apply(t, s)))
+                .collect(Collectors.toCollection(ArrayList::new));
+        return new Diff<T>().setAddList(addList).setUpdateList(updateList).setDelList(delList);
+    }
+
+    public static <T, R> Diff2<T, R> diff(List<T> oldList,
+                                          List<R> newList,
+                                          BiFunction<T, T, Boolean> keyExtractor1,
+                                          BiFunction<T, R, Boolean> keyExtractor2) {
+        // 计算交集
+        List<T> updateList = oldList.stream()
+                .filter(s -> newList.stream().anyMatch(t -> keyExtractor2.apply(s, t)))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        // 计算差集（新增的对象，即在新列表中，但是不在旧列表中的对象）
+        List<R> addList = newList.stream()
+                .filter(s -> updateList.stream().noneMatch(t -> keyExtractor2.apply(t, s)))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        // 计算差集（删除的对象，即在旧列表中，但是不在新列表中的对象）
+        List<T> delList = oldList.stream()
+                .filter(s -> updateList.stream().noneMatch(t -> keyExtractor1.apply(t, s)))
+                .collect(Collectors.toCollection(ArrayList::new));
+        return new Diff2<T, R>().setAddList(addList).setUpdateList(updateList).setDelList(delList);
+    }
 
     // 静态方法，返回一个流的包装类
     public static <T> Try<T> Try(CheckedFunction0<T> supplier) {
@@ -140,6 +181,12 @@ public final class X {
             return new ListWrapper<>(newList);
         }
 
+        public ListWrapper<T> addAll(List<T> ts) {
+            final List<T> newList = new ArrayList<>(list);
+            newList.addAll(ts);
+            return new ListWrapper<>(newList);
+        }
+
         public ListWrapper<T> add(int index, T t) {
             final List<T> newList = new ArrayList<>(list);
             newList.add(index, t);
@@ -204,9 +251,49 @@ public final class X {
         }
 
         // 过滤或的实现
+        @SafeVarargs
+        public final ListWrapper<T> ors(Predicate<T>... predicates) {
+            List<T> result = new ArrayList<>();
+            if (isNotEmpty()) {
+                result = list.stream()
+                        .filter(item -> Arrays.stream(predicates).anyMatch(predicate -> predicate.test(item)))
+                        .collect(Collectors.toCollection(ArrayList::new));
+            }
+            return new ListWrapper<>(result);
+        }
+
+        // 过滤或的实现
+        @SafeVarargs
+        public final ListWrapper<T> or(Function<XItem<T>, Boolean>... predicates) {
+            List<T> result = new ArrayList<>();
+            if (isNotEmpty()) {
+                result = list.stream()
+                        .filter(item -> Arrays.stream(predicates).anyMatch(predicate -> predicate.apply(new XItem(item))))
+                        .collect(Collectors.toCollection(ArrayList::new));
+            }
+            return new ListWrapper<>(result);
+        }
+
+        // 过滤或的实现
         @SuppressWarnings("unused")
         public boolean anyMatch(Predicate<T> predicate) {
             return list.stream().anyMatch(predicate);
+        }
+
+        public ListWrapper<T> gt(Function<T, Integer> func, Integer num) {
+            List<T> result = new ArrayList<>();
+            if (isNotEmpty()) {
+                result = list.stream().filter(t -> func.apply(t) > num).collect(Collectors.toList());
+            }
+            return new ListWrapper<>(result);
+        }
+
+        public ListWrapper<T> gt(Function<T, Long> func, Long num) {
+            List<T> result = new ArrayList<>();
+            if (isNotEmpty()) {
+                result = list.stream().filter(t -> func.apply(t) > num).collect(Collectors.toList());
+            }
+            return new ListWrapper<>(result);
         }
 
         // 过滤或的实现
@@ -219,6 +306,7 @@ public final class X {
             List<T> result = new ArrayList<>();
             if (isNotEmpty()) {
                 result = list.stream()
+                        .map(X::clone)
                         .peek(consumer)
                         .collect(Collectors.toCollection(ArrayList::new));
             }
@@ -235,6 +323,37 @@ public final class X {
             return filterNotBlank(getters);
         }
 
+
+        // 过滤非空的方法
+        @SafeVarargs
+        public final ListWrapper<T> filterIsNull(Function<T, ?>... getters) {
+            return filterBlank(getters);
+        }
+
+        // 过滤非空的方法
+        @SafeVarargs
+        public final ListWrapper<T> isNotNull(Function<T, ?>... getters) {
+            return filterNotBlank(getters);
+        }
+
+        // 过滤非空的方法
+        @SafeVarargs
+        public final ListWrapper<T> isNull(Function<T, ?>... getters) {
+            return filterBlank(getters);
+        }
+
+        // 过滤非空的方法
+        @SafeVarargs
+        public final ListWrapper<T> isNotBlank(Function<T, ?>... getters) {
+            return filterNotBlank(getters);
+        }
+
+        // 过滤非空的方法
+        @SafeVarargs
+        public final ListWrapper<T> isBlank(Function<T, ?>... getters) {
+            return filterBlank(getters);
+        }
+
         // 过滤非空的方法
         @SafeVarargs
         public final ListWrapper<T> filterNotBlank(Function<T, ?>... getters) {
@@ -243,7 +362,31 @@ public final class X {
                 result = list.stream()
                         .filter(item -> Arrays.stream(getters).allMatch(getter -> {
                             Object value = getter.apply(item);
-                            return value != null && !value.toString().isEmpty();
+                            if (value != null) {
+                                if (value instanceof CharSequence) {
+                                    return !value.toString().isEmpty();
+                                }
+                                return true;
+                            }
+                            return false;
+                        }))
+                        .collect(Collectors.toCollection(ArrayList::new));
+            }
+            return new ListWrapper<>(result);
+        }
+
+        // 过滤非空的方法
+        @SafeVarargs
+        public final ListWrapper<T> filterBlank(Function<T, ?>... getters) {
+            List<T> result = new ArrayList<>();
+            if (isNotEmpty()) {
+                result = list.stream()
+                        .filter(item -> Arrays.stream(getters).allMatch(getter -> {
+                            Object value = getter.apply(item);
+                            if (value == null) {
+                                return true;
+                            }
+                            return (value instanceof CharSequence) && value.toString().isEmpty();
                         }))
                         .collect(Collectors.toCollection(ArrayList::new));
             }
@@ -363,10 +506,84 @@ public final class X {
         private boolean isEmpty() {
             return list == null || list.isEmpty();
         }
+
         private boolean isNotEmpty() {
             return !isEmpty();
         }
 
+    }
+
+    public static class XItem<V> {
+
+        private final V item;
+
+        public XItem(V item) {
+            this.item = item;
+        }
+
+        public boolean gt(Function<V, Long> func, Long num) {
+            return func.apply(item) > num;
+        }
+
+        public boolean gt(Function<V, Integer> func, Integer num) {
+            return func.apply(item) > num;
+        }
+
+        public boolean gt(Function<V, Double> func, Double num) {
+            return func.apply(item) > num;
+        }
+
+        public boolean gt(Function<V, BigDecimal> func, BigDecimal num) {
+            return func.apply(item).compareTo(num) > 0;
+        }
+
+        public boolean ge(Function<V, Long> func, Long num) {
+            return func.apply(item) >= num;
+        }
+
+        public boolean ge(Function<V, Integer> func, Integer num) {
+            return func.apply(item) >= num;
+        }
+
+        public boolean ge(Function<V, Double> func, Double num) {
+            return func.apply(item) >= num;
+        }
+
+        public boolean ge(Function<V, BigDecimal> func, BigDecimal num) {
+            return func.apply(item).compareTo(num) >= 0;
+        }
+
+        public boolean lt(Function<V, Long> func, Long num) {
+            return func.apply(item) < num;
+        }
+
+        public boolean lt(Function<V, Integer> func, Integer num) {
+            return func.apply(item) < num;
+        }
+
+        public boolean lt(Function<V, Double> func, Double num) {
+            return func.apply(item) < num;
+        }
+
+        public boolean lt(Function<V, BigDecimal> func, BigDecimal num) {
+            return func.apply(item).compareTo(num) < 0;
+        }
+
+        public boolean le(Function<V, Long> func, Long num) {
+            return func.apply(item) <= num;
+        }
+
+        public boolean le(Function<V, Integer> func, Integer num) {
+            return func.apply(item) <= num;
+        }
+
+        public boolean le(Function<V, Double> func, Double num) {
+            return func.apply(item) <= num;
+        }
+
+        public boolean le(Function<V, BigDecimal> func, BigDecimal num) {
+            return func.apply(item).compareTo(num) <= 0;
+        }
     }
 
     public static class XList<V> {
@@ -382,6 +599,7 @@ public final class X {
                     .map(func)
                     .collect(Collectors.toCollection(ArrayList::new));
         }
+
     }
 
     public static abstract class Try<T> {
@@ -631,6 +849,56 @@ public final class X {
         NullFirst, NullLast
     }
 
+    @Data
+    @Accessors(chain = true)
+    public static class Diff<T> {
+        private List<T> addList;
+        private List<T> updateList;
+        private List<T> delList;
+
+        public List<T> getEffectList() {
+            return X.l(updateList).addAll(addList).list();
+        }
+
+        public Diff<T> addList(Consumer<List<T>> consumer) {
+            consumer.accept(addList);
+            return this;
+        }
+
+        public Diff<T> updateList(Consumer<List<T>> consumer) {
+            consumer.accept(updateList);
+            return this;
+        }
+
+        public Diff<T> delList(Consumer<List<T>> consumer) {
+            consumer.accept(delList);
+            return this;
+        }
+    }
+
+    @Data
+    @Accessors(chain = true)
+    public static class Diff2<T, R> {
+        private List<R> addList;
+        private List<T> updateList;
+        private List<T> delList;
+
+        public Diff2<T, R> addList(Consumer<List<R>> consumer) {
+            consumer.accept(addList);
+            return this;
+        }
+
+        public Diff2<T, R> updateList(Consumer<List<T>> consumer) {
+            consumer.accept(updateList);
+            return this;
+        }
+
+        public Diff2<T, R> delList(Consumer<List<T>> consumer) {
+            consumer.accept(delList);
+            return this;
+        }
+    }
+
     @FunctionalInterface
     public interface CheckedFunction0<R> {
         R apply() throws Throwable;
@@ -661,5 +929,24 @@ public final class X {
             throw (T) t;
         }
 
+    }
+
+    public static <T> T clone(T obj) {
+        if (!(obj instanceof Serializable)) {
+            throw new RuntimeException("对象没有实现 Serializable 接口");
+        }
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(obj);
+            oos.close();
+            ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+            ObjectInputStream ois = new ObjectInputStream(bis);
+            Object newObj = ois.readObject();
+            ois.close();
+            return (T) newObj;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

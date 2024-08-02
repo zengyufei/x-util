@@ -3,11 +3,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
 public class TestX {
-
 
 
     // 主方法用于测试
@@ -38,6 +38,13 @@ public class TestX {
                 .list();
         System.out.println("1 用户年龄大于18岁：" + ages);
 
+        // 1.1 获取大于18岁的用户的年龄
+        System.out.println("1 用户年龄大于18岁：" + X.l(userList)
+                .filterNotNull(User::getAge)
+                .filterNotNull(User::getName)
+                .gt(User::getAge, 18)
+                .list());
+
         // 2. 按照年龄分组大于11岁的用户
         Map<Integer, List<User>> groupedByAge = X.l(userList)
                 .filters(e -> e.age != null,
@@ -63,16 +70,26 @@ public class TestX {
 
         // 4. 获取大于18岁或小于7岁的用户的年龄
         List<Integer> ages2 = X.l(userList)
-                .filterNotNull(User::getAge)
-                .filterOrs(e -> e.age > 18,
+                .isNotNull(User::getAge)
+                .ors(e -> e.age > 18,
                         e -> e.age < 7)
                 .map(e -> e.age)
                 .list();
         System.out.println("4 用户年龄在18岁以上或7岁以下：" + ages2);
 
+        // 4.1 获取大于18岁或小于7岁的用户的年龄
+        System.out.println("4.1 用户年龄在18岁以上或7岁以下：" + X.l(userList)
+                .filterNotNull(User::getAge)
+                .or(
+                        e -> e.gt(User::getAge, 18),
+                        e -> e.lt(User::getAge, 7)
+                )
+                .map(e -> e.age)
+                .list());
+
         // 5. 过滤Role集合中roleName不为空，且seqNo不为空的用户
         List<Role> newRoleList1 = X.l(roleList)
-                .filterNotBlank(Role::getRoleName)
+                .isNotBlank(Role::getRoleName)
                 .filterNotBlank(Role::getSeqNo)
                 .list();
         System.out.println("5 具有非空角色名称（roleName）和序列号（seqNo）的角色：" + newRoleList1);
@@ -92,7 +109,7 @@ public class TestX {
 
         // 7.1 去掉User集合中名字重复的实体，并且名字后面增加123
         List<User> peekDistinctUsers = X.l(userList)
-                .peek(e->e.name=e.name + "123")
+                .peek(e -> e.name = e.name + "123")
                 .distinct(User::getName)
                 .list();
         System.out.println("7.1 按姓名区分的用户，并且名字后面增加123：" + peekDistinctUsers);
@@ -145,6 +162,32 @@ public class TestX {
         System.out.println("15. 反转list" + reversedList);
         System.out.println("15. 反转list校验" + roleList);
 
+
+        final List<User> newList = X.l(userList)
+                .peek(e -> {
+                    if (e.age != null && e.age >= 17) {
+                        e.name = e.name + "123";
+                    }
+                })
+                .list();
+
+        System.out.println("15.1 对比");
+        X.diff(userList, newList, (oldUser, newUser) -> oldUser.name.equals(newUser.name))
+                .addList(System.out::println)
+                .updateList(System.out::println)
+                .delList(System.out::println);
+
+
+        System.out.println("15.2 不同对象对比");
+        X.diff(roleList, userList,
+                        (oldRole, newRole) -> oldRole.getRoleName().equals(newRole.getRoleName()),
+                        (role, user) -> role.getRoleName().equals(user.getName())
+                )
+                .addList(System.out::println)
+                .updateList(System.out::println)
+                .delList(System.out::println);
+
+
         X.TryRun(() -> System.out.print("16. success "))
                 .andThen(() -> System.out.print(" andThen next "))
                 .onFailure(error -> System.out.println("failure" + error.getMessage()))
@@ -178,12 +221,11 @@ public class TestX {
     }
 
 
-
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     // User 类
-    public final static class User {
+    public final static class User implements Serializable {
         String name;
         Integer age;
     }
@@ -192,7 +234,7 @@ public class TestX {
     @AllArgsConstructor
     @NoArgsConstructor
     // Role 类
-    public final static class Role {
+    public final static class Role implements Serializable {
         String roleName;
         Integer seqNo;
     }
