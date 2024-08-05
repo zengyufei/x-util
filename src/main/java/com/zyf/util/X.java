@@ -106,6 +106,10 @@ public final class X {
         return new ListWrapper<>(list);
     }
 
+    public static <T> Set<T> ofSet() {
+        return new HashSet<>();
+    }
+
     @SafeVarargs
     public static <T> List<T> of(T... elements) {
         Objects.requireNonNull(elements, "elements is null");
@@ -241,13 +245,7 @@ public final class X {
         // 过滤或的实现
         @SafeVarargs
         public final ListWrapper<T> filterOrs(Predicate<T>... predicates) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .filter(item -> Arrays.stream(predicates).anyMatch(predicate -> predicate.test(item)))
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
+            return ors(predicates);
         }
 
         // 过滤或的实现
@@ -260,6 +258,12 @@ public final class X {
                         .collect(Collectors.toCollection(ArrayList::new));
             }
             return new ListWrapper<>(result);
+        }
+
+        // 过滤或的实现
+        @SafeVarargs
+        public final ListWrapper<T> filterOr(Function<XItem<T>, Boolean>... predicates) {
+            return or(predicates);
         }
 
         // 过滤或的实现
@@ -521,69 +525,49 @@ public final class X {
             this.item = item;
         }
 
-        public boolean gt(Function<V, Long> func, Long num) {
-            return func.apply(item) > num;
+        private boolean compare(Number value, Number num, String type){
+            BigDecimal left = new BigDecimal(value.toString());
+            BigDecimal right = new BigDecimal(num.toString());
+            switch (type) {
+                case ">" -> {
+                    return left.compareTo(right) > 0;
+                }
+                case "<" -> {
+                    return left.compareTo(right) < 0;
+                }
+                case ">=" -> {
+                    return left.compareTo(right) >= 0;
+                }
+                case "<=" -> {
+                    return left.compareTo(right) <= 0;
+                }
+                case "==" -> {
+                    return left.compareTo(right) == 0;
+                }
+            }
+            return false;
         }
 
-        public boolean gt(Function<V, Integer> func, Integer num) {
-            return func.apply(item) > num;
+        public boolean gt(Function<V, Number> func, Number num) {
+            return compare(func.apply(item), num,">");
         }
 
-        public boolean gt(Function<V, Double> func, Double num) {
-            return func.apply(item) > num;
+        public boolean ge(Function<V, Number> func, Number num) {
+            return compare(func.apply(item), num,">=");
         }
 
-        public boolean gt(Function<V, BigDecimal> func, BigDecimal num) {
-            return func.apply(item).compareTo(num) > 0;
+        public boolean lt(Function<V, Number> func, Number num) {
+            return compare(func.apply(item), num,"<");
         }
 
-        public boolean ge(Function<V, Long> func, Long num) {
-            return func.apply(item) >= num;
+        public boolean le(Function<V, Number> func, Number num) {
+            return compare(func.apply(item), num,"<=");
         }
 
-        public boolean ge(Function<V, Integer> func, Integer num) {
-            return func.apply(item) >= num;
-        }
+//        public <R> XItem<R> map(Function<V, R> func) {
+//            return new XItem<>(func.apply(item));
+//        }
 
-        public boolean ge(Function<V, Double> func, Double num) {
-            return func.apply(item) >= num;
-        }
-
-        public boolean ge(Function<V, BigDecimal> func, BigDecimal num) {
-            return func.apply(item).compareTo(num) >= 0;
-        }
-
-        public boolean lt(Function<V, Long> func, Long num) {
-            return func.apply(item) < num;
-        }
-
-        public boolean lt(Function<V, Integer> func, Integer num) {
-            return func.apply(item) < num;
-        }
-
-        public boolean lt(Function<V, Double> func, Double num) {
-            return func.apply(item) < num;
-        }
-
-        public boolean lt(Function<V, BigDecimal> func, BigDecimal num) {
-            return func.apply(item).compareTo(num) < 0;
-        }
-
-        public boolean le(Function<V, Long> func, Long num) {
-            return func.apply(item) <= num;
-        }
-
-        public boolean le(Function<V, Integer> func, Integer num) {
-            return func.apply(item) <= num;
-        }
-
-        public boolean le(Function<V, Double> func, Double num) {
-            return func.apply(item) <= num;
-        }
-
-        public boolean le(Function<V, BigDecimal> func, BigDecimal num) {
-            return func.apply(item).compareTo(num) <= 0;
-        }
     }
 
     public static class XList<V> {

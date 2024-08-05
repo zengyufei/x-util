@@ -1,9 +1,7 @@
+import children.entity.Role;
+import children.entity.User;
 import com.zyf.util.X;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -33,8 +31,8 @@ public class TestX {
         // 1. 获取大于18岁的用户的年龄
         List<User> ages = X.l(userList)
                 .filterNotNull(User::getAge)
-                .filters(e -> e.name != null,
-                        e -> e.age > 18)
+                .filters(e -> e.getName() != null,
+                        e -> e.getAge() > 18)
                 .list();
         System.out.println("1 用户年龄大于18岁：" + ages);
 
@@ -47,16 +45,16 @@ public class TestX {
 
         // 2. 按照年龄分组大于11岁的用户
         Map<Integer, List<User>> groupedByAge = X.l(userList)
-                .filters(e -> e.age != null,
-                        e -> e.age > 11)
+                .filters(e -> e.getAge() != null,
+                        e -> e.getAge() > 11)
                 .groupBy(User::getAge)
                 .map();
         System.out.println("2 按年龄分组（年龄大于11岁）的用户：" + groupedByAge);
 
         // 2.1 按年龄分组，只取姓名
         final Map<Integer, List<String>> map = X.l(userList)
-                .filters(e -> e.age != null,
-                        e -> e.age > 11)
+                .filters(e -> e.getAge() != null,
+                        e -> e.getAge() > 11)
                 .groupBy(User::getAge)
                 .mapValues(e -> e.map(User::getName))
                 .map();
@@ -64,16 +62,16 @@ public class TestX {
 
         // 3. 过滤roleName开头以root，并按照seqNo转为map
         Map<Integer, String> roleMap = X.l(roleList)
-                .filters(e -> e.roleName.startsWith("root"))
+                .filters(e -> e.getRoleName().startsWith("root"))
                 .toMap(Role::getSeqNo, Role::getRoleName);
         System.out.println("3 以“root”开头的角色：" + roleMap);
 
         // 4. 获取大于18岁或小于7岁的用户的年龄
         List<Integer> ages2 = X.l(userList)
                 .isNotNull(User::getAge)
-                .ors(e -> e.age > 18,
-                        e -> e.age < 7)
-                .map(e -> e.age)
+                .ors(e -> e.getAge() > 18,
+                        e -> e.getAge() < 7)
+                .map(User::getAge)
                 .list();
         System.out.println("4 用户年龄在18岁以上或7岁以下：" + ages2);
 
@@ -84,7 +82,7 @@ public class TestX {
                         e -> e.gt(User::getAge, 18),
                         e -> e.lt(User::getAge, 7)
                 )
-                .map(e -> e.age)
+                .map(User::getAge)
                 .list());
 
         // 5. 过滤Role集合中roleName不为空，且seqNo不为空的用户
@@ -109,7 +107,7 @@ public class TestX {
 
         // 7.1 去掉User集合中名字重复的实体，并且名字后面增加123
         List<User> peekDistinctUsers = X.l(userList)
-                .peek(e -> e.name = e.name + "123")
+                .peek(e -> e.setName(e.getName() + "123"))
                 .distinct(User::getName)
                 .list();
         System.out.println("7.1 按姓名区分的用户，并且名字后面增加123：" + peekDistinctUsers);
@@ -165,14 +163,14 @@ public class TestX {
 
         final List<User> newList = X.l(userList)
                 .peek(e -> {
-                    if (e.age != null && e.age >= 17) {
-                        e.name = e.name + "123";
+                    if (e.getAge() != null && e.getAge() >= 17) {
+                        e.setName(e.getName() + "123");
                     }
                 })
                 .list();
 
         System.out.println("15.1 对比");
-        X.diff(userList, newList, (oldUser, newUser) -> oldUser.name.equals(newUser.name))
+        X.diff(userList, newList, (oldUser, newUser) -> oldUser.getName().equals(newUser.getName()))
                 .addList(System.out::println)
                 .updateList(System.out::println)
                 .delList(System.out::println);
@@ -221,21 +219,4 @@ public class TestX {
     }
 
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    // User 类
-    public final static class User implements Serializable {
-        String name;
-        Integer age;
-    }
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    // Role 类
-    public final static class Role implements Serializable {
-        String roleName;
-        Integer seqNo;
-    }
 }
