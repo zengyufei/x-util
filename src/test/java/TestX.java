@@ -2,6 +2,7 @@ import children.entity.Role;
 import children.entity.User;
 import com.zyf.util.X;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -11,7 +12,7 @@ public class TestX {
     // 主方法用于测试
     public static void main(String[] args) {
         // 测试数据
-        List<User> userList = X.of(
+        List<User> userList = X.asList(
                 new User("Alice", 20),
                 new User("Bob", 17),
                 new User("Yama", 17),
@@ -20,7 +21,7 @@ public class TestX {
                 new User("Eve", 5)
         );
 
-        List<Role> roleList = X.of(
+        List<Role> roleList = X.asList(
                 new Role("rootAdmin", 1),
                 new Role("user", 2),
                 new Role("rootUser", 3),
@@ -35,6 +36,7 @@ public class TestX {
                         e -> e.getAge() > 18)
                 .list();
         System.out.println("1 用户年龄大于18岁：" + ages);
+
 
         // 1.1 获取大于18岁的用户的年龄
         System.out.println("1 用户年龄大于18岁：" + X.l(userList)
@@ -152,6 +154,7 @@ public class TestX {
                 .sub(1, 3)
                 .list();
         System.out.println("14. 自由截取" + subList2);
+
 
         // 15. 反转list
         List<Role> reversedList = X.l(roleList)

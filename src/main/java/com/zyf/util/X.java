@@ -99,19 +99,31 @@ public final class X {
         return new ListWrapper<>(list);
     }
 
-    public static <T> ListWrapper<T> of(T element) {
+    public static <T> ListWrapper<T> warpperList(T element) {
         Objects.requireNonNull(element, "elements is null");
         final List<T> list = new ArrayList<>();
         list.add(element);
         return new ListWrapper<>(list);
     }
 
-    public static <T> Set<T> ofSet() {
+    public static <T> Set<T> asSet() {
         return new HashSet<>();
     }
 
+    public static <K, V> MapWrapper<K, V> wapperMap(K k, V v) {
+        final Map<K, V> map = new HashMap<>();
+        map.put(k, v);
+        return new MapWrapper<>(map);
+    }
+
+    public static <K, V> Map<K, V> asMap(K k, V v) {
+        final Map<K, V> map = new HashMap<>();
+        map.put(k, v);
+        return map;
+    }
+
     @SafeVarargs
-    public static <T> List<T> of(T... elements) {
+    public static <T> List<T> asList(T... elements) {
         Objects.requireNonNull(elements, "elements is null");
         final List<T> list = new ArrayList<>();
         for (int i = elements.length - 1; i >= 0; i--) {
@@ -120,9 +132,68 @@ public final class X {
         return list;
     }
 
+    @SafeVarargs
+    public static <T> ListWrapper<T> warpperList(T... elements) {
+        Objects.requireNonNull(elements, "elements is null");
+        final List<T> list = new ArrayList<>();
+        for (int i = elements.length - 1; i >= 0; i--) {
+            list.add(elements[i]);
+        }
+        return new ListWrapper<>(list);
+    }
+
+//    public static class XMap<K, V> extends HashMap<K, V>{
+//        public XMap<K, V> ofMap(K key, V value) {
+//            super.put(key, value);
+//            return this;
+//        }
+//    }
+//    public static class XList<T> extends ArrayList<T>{
+//        public XList<T> ofList(T value) {
+//            super.add(value);
+//            return this;
+//        }
+//    }
 
     // 静态方法，返回一个流的包装类
-    public static <K, V> MapListWrapper<K, V> m(Map<K, List<V>> map) {
+    public static <K, V> MapWrapper<K, V> m(Map<K, V> map) {
+        return new MapWrapper<>(map);
+    }
+
+    // 内部类，封装流操作
+    public final static class MapWrapper<K, V> {
+        private final Map<K, V> map;
+
+        public MapWrapper(Map<K, V> map) {
+            this.map = map;
+        }
+
+        public void hasKey(K key, Consumer<V> consumer) {
+            if (map.containsKey(key)) {
+                consumer.accept(map.get(key));
+            }
+        }
+
+
+        public void hasKey(K key, V defaultValue, Consumer<V> consumer) {
+            if (map.containsKey(key)) {
+                consumer.accept(map.getOrDefault(key, defaultValue));
+            }
+        }
+
+
+        public MapWrapper<K, V> put(K k, V v) {
+            map.put(k, v);
+            return this;
+        }
+
+        public Map<K, V> map() {
+            return map;
+        }
+    }
+
+    // 静态方法，返回一个流的包装类
+    public static <K, V> MapListWrapper<K, V> ml(Map<K, List<V>> map) {
         return new MapListWrapper<>(map);
     }
 
@@ -154,12 +225,12 @@ public final class X {
 //            }
 //            return new MapListWrapper<>(newMap);
 //        }
-        public <E> MapListWrapper<K, E> mapValues(Function<XList<V>, List<E>> func) {
+        public <E> MapListWrapper<K, E> mapValues(Function<XMapList<V>, List<E>> func) {
             final Map<K, List<E>> newMap = new LinkedHashMap<>();
             for (Map.Entry<K, List<V>> entry : map.entrySet()) {
                 final K key = entry.getKey();
                 final List<V> values = entry.getValue();
-                List<E> rList = new ArrayList<>(func.apply(new XList<>(values)));
+                List<E> rList = new ArrayList<>(func.apply(new XMapList<>(values)));
                 newMap.put(key, rList);
             }
             return new MapListWrapper<>(newMap);
@@ -169,6 +240,12 @@ public final class X {
             return map;
         }
 
+        public List<V> getValues(K key) {
+            if (map.containsKey(key)) {
+                return map.get(key);
+            }
+            return new ArrayList<>();
+        }
     }
 
     // 内部类，封装流操作
@@ -180,28 +257,24 @@ public final class X {
         }
 
         public ListWrapper<T> add(T t) {
-            final List<T> newList = new ArrayList<>(list);
-            newList.add(t);
-            return new ListWrapper<>(newList);
+            list.add(t);
+            return this;
         }
 
         public ListWrapper<T> addAll(List<T> ts) {
-            final List<T> newList = new ArrayList<>(list);
-            newList.addAll(ts);
-            return new ListWrapper<>(newList);
+            list.addAll(ts);
+            return this;
         }
 
         public ListWrapper<T> add(int index, T t) {
-            final List<T> newList = new ArrayList<>(list);
-            newList.add(index, t);
-            return new ListWrapper<>(newList);
+            list.add(index, t);
+            return this;
         }
 
         @SafeVarargs
         public final ListWrapper<T> add(T... ts) {
-            final List<T> newList = new ArrayList<>(list);
-            newList.addAll(of(ts));
-            return new ListWrapper<>(newList);
+            list.addAll(asList(ts));
+            return this;
         }
 
         public ListWrapper<T> skip(int skipIndex) {
@@ -228,6 +301,12 @@ public final class X {
                     return list.size();
                 }
             });
+        }
+
+        // 过滤方法
+        @SafeVarargs
+        public final ListWrapper<T> ands(Predicate<T>... predicates) {
+            return filters(predicates);
         }
 
         // 过滤方法
@@ -268,12 +347,40 @@ public final class X {
 
         // 过滤或的实现
         @SafeVarargs
+        public final ListWrapper<T> and(Function<XItem<T>, Boolean>... predicates) {
+            List<T> result = new ArrayList<>();
+            if (isNotEmpty()) {
+                result = list.stream()
+                        .filter(item -> Arrays.stream(predicates).allMatch(predicate -> predicate.apply(new XItem<>(item))))
+                        .collect(Collectors.toCollection(ArrayList::new));
+            }
+            return new ListWrapper<>(result);
+        }
+
+        // 过滤或的实现
+        @SafeVarargs
         public final ListWrapper<T> or(Function<XItem<T>, Boolean>... predicates) {
             List<T> result = new ArrayList<>();
             if (isNotEmpty()) {
                 result = list.stream()
-                        .filter(item -> Arrays.stream(predicates).anyMatch(predicate -> predicate.apply(new XItem(item))))
+                        .filter(item -> Arrays.stream(predicates).anyMatch(predicate -> predicate.apply(new XItem<>(item))))
                         .collect(Collectors.toCollection(ArrayList::new));
+            }
+            return new ListWrapper<>(result);
+        }
+
+
+        @SafeVarargs
+        public final ListWrapper<T> peek(Consumer<T> consumer, Function<XItem<T>, Boolean>... predicates) {
+            List<T> result = new ArrayList<>();
+            if (isNotEmpty()) {
+                result.addAll(list.stream()
+                        .map(X::clone)
+                        .peek(e -> {
+                            if (Arrays.stream(predicates).allMatch(predicate -> predicate.apply(new XItem<>(e)))) {
+                                consumer.accept(e);
+                            }
+                        }).collect(Collectors.toCollection(ArrayList::new)));
             }
             return new ListWrapper<>(result);
         }
@@ -462,6 +569,12 @@ public final class X {
             return list.stream().collect(Collectors.toMap(keyMapper, valueMapper, mergeExtractor));
         }
 
+        // 转换为 Map
+        public <K> Map<K, T> toMap(Function<T, K> keyMapper, BinaryOperator<T> mergeExtractor) {
+            return list.stream().collect(Collectors.toMap(keyMapper, e -> e, mergeExtractor));
+        }
+
+
         // 排序方法
         @SuppressWarnings("unused")
         public ListWrapper<T> sort(Comparator<T> comparator) {
@@ -515,6 +628,71 @@ public final class X {
             return !isEmpty();
         }
 
+        public <R> double sumDouble(Function<T, R> mapper) {
+            return sumBigDecimal(mapper).doubleValue();
+        }
+
+        public <R> int sumInt(Function<T, R> mapper) {
+            return sumBigDecimal(mapper).intValue();
+        }
+
+        public <R> long sumLong(Function<T, R> mapper) {
+            return sumBigDecimal(mapper).longValue();
+        }
+
+        public <R> BigDecimal sumBigDecimal(Function<T, R> mapper) {
+            BigDecimal sum = new BigDecimal("0.0");
+            for (T t : list) {
+                R r = mapper.apply(t);
+                if (r instanceof Number) {
+                    sum = sum.add(new BigDecimal(String.valueOf(r)));
+                } else {
+                    throw new IllegalArgumentException("不是数字,不能计算");
+                }
+            }
+            return sum;
+        }
+
+        public Double sumDouble() {
+            return sumBigDecimal().doubleValue();
+        }
+
+        public Integer sumInt() {
+            return sumBigDecimal().intValue();
+        }
+
+        public Long sumLong() {
+            return sumBigDecimal().longValue();
+        }
+
+        public BigDecimal sumBigDecimal() {
+            BigDecimal sum = new BigDecimal("0.0");
+            for (T t : list) {
+                if (t instanceof Number) {
+                    sum = sum.add(new BigDecimal(String.valueOf(t)));
+                } else {
+                    throw new IllegalArgumentException("不是数字,不能计算");
+                }
+            }
+            return sum;
+        }
+
+        public <S, R> R reduce(Supplier<R> func, BiConsumer<R, T> consumer) {
+            R r = func.get();
+            for (T t : list) {
+                consumer.accept(r, t);
+            }
+            return r;
+        }
+
+        public <S, E, R> R reduce(Supplier<R> supplier, Function<T, E> func, BiConsumer<R, E> consumer) {
+            R r = supplier.get();
+            for (T t : list) {
+                E e = func.apply(t);
+                consumer.accept(r, e);
+            }
+            return r;
+        }
     }
 
     public static class XItem<V> {
@@ -525,7 +703,7 @@ public final class X {
             this.item = item;
         }
 
-        private boolean compare(Number value, Number num, String type){
+        private boolean compare(Number value, Number num, String type) {
             BigDecimal left = new BigDecimal(value.toString());
             BigDecimal right = new BigDecimal(num.toString());
             switch (type) {
@@ -549,32 +727,38 @@ public final class X {
         }
 
         public boolean gt(Function<V, Number> func, Number num) {
-            return compare(func.apply(item), num,">");
+            return compare(func.apply(item), num, ">");
         }
 
         public boolean ge(Function<V, Number> func, Number num) {
-            return compare(func.apply(item), num,">=");
+            return compare(func.apply(item), num, ">=");
         }
 
         public boolean lt(Function<V, Number> func, Number num) {
-            return compare(func.apply(item), num,"<");
+            return compare(func.apply(item), num, "<");
         }
 
         public boolean le(Function<V, Number> func, Number num) {
-            return compare(func.apply(item), num,"<=");
+            return compare(func.apply(item), num, "<=");
         }
 
 //        public <R> XItem<R> map(Function<V, R> func) {
 //            return new XItem<>(func.apply(item));
 //        }
 
+        public final <R> boolean isNotNull(Function<V, R> func) {
+            final R r = func.apply(item);
+            return null != r;
+        }
+
+
     }
 
-    public static class XList<V> {
+    public static class XMapList<V> {
 
         private final List<V> list;
 
-        public XList(List<V> values) {
+        public XMapList(List<V> values) {
             this.list = values;
         }
 

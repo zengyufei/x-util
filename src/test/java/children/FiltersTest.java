@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class Filters {
+public class FiltersTest {
 
     @Test
     @Order(1)
@@ -83,6 +83,20 @@ public class Filters {
         long my = X.l(Data.用户集合)
                 .isNotNull(User::getAge)
                 .filters(e -> e.getAge() > 17)
+                .count();
+        assert my == jdk;
+    }
+
+    @Test
+    @Order(7)
+    public void 过滤年龄不为空且年龄大于17v4() {
+        long jdk = Data.用户集合.stream()
+                .filter(e -> e.getAge() != null)
+                .filter(e -> e.getAge() > 17)
+                .count();
+        long my = X.l(Data.用户集合)
+                .ands(e -> e.getAge() != null,
+                        e -> e.getAge() > 17)
                 .count();
         assert my == jdk;
     }
