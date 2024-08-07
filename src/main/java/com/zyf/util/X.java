@@ -125,20 +125,13 @@ public final class X {
     @SafeVarargs
     public static <T> List<T> asList(T... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        final List<T> list = new ArrayList<>();
-        for (int i = elements.length - 1; i >= 0; i--) {
-            list.add(elements[i]);
-        }
-        return list;
+        return new ArrayList<>(Arrays.asList(elements));
     }
 
     @SafeVarargs
     public static <T> ListWrapper<T> warpperList(T... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        final List<T> list = new ArrayList<>();
-        for (int i = elements.length - 1; i >= 0; i--) {
-            list.add(elements[i]);
-        }
+        final List<T> list = new ArrayList<>(Arrays.asList(elements));
         return new ListWrapper<>(list);
     }
 
