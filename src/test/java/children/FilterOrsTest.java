@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class FilterOrs {
+public class FilterOrsTest {
 
     @Test
     @Order(1)
