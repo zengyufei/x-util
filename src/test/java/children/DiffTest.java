@@ -1,5 +1,6 @@
 package children;
 
+import children.entity.Role;
 import children.entity.User;
 import com.zyf.util.X;
 import org.junit.jupiter.api.MethodOrderer;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 import java.util.List;
+import java.util.Map;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class DiffTest {
@@ -25,8 +27,12 @@ public class DiffTest {
                 .addList(l -> {
                     assert l.size() == 2;
                 })
-                .updateList(l -> {
-                    assert l.size() == 4;
+                .updateList((l, map) -> {
+                    for (Map.Entry<User, User> entry : map.entrySet()) {
+                        final User left = entry.getKey();
+                        final User right = entry.getValue();
+                        System.out.println(left.getName() + "->" + right.getName());
+                    }
                 })
                 .delList(l -> {
                     assert l.size() == 2;
@@ -36,15 +42,18 @@ public class DiffTest {
     @Test
     @Order(2)
     public void diff不同类型对比() {
-        X.diff(Data.roleList, Data.用户集合,
-                        (oldRole, newRole) -> oldRole.getRoleName().equals(newRole.getRoleName()),
+        X.diff2(Data.roleList, Data.用户集合,
                         (role, user) -> role.getRoleName().equals(user.getName())
                 )
                 .addList(l -> {
                     assert l.size() == 6;
                 })
-                .updateList(l -> {
-                    assert l.size() == 0;
+                .updateList((l, map) -> {
+                    for (Map.Entry<Role, User> entry : map.entrySet()) {
+                        final Role left = entry.getKey();
+                        final User right = entry.getValue();
+                        System.out.println(left.getRoleName() + "->" + right.getName());
+                    }
                 })
                 .delList(l -> {
                     assert l.size() == 5;

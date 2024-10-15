@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -18,41 +19,61 @@ public final class X {
                                    List<T> newList,
                                    BiFunction<T, T, Boolean> keyExtractor) {
         // 计算交集
-        List<T> updateList = oldList.stream()
+        List<T> existsList = oldList.stream()
                 .filter(s -> newList.stream().anyMatch(t -> keyExtractor.apply(t, s)))
                 .collect(Collectors.toCollection(ArrayList::new));
 
+        Map<T, T> map = new LinkedHashMap<>();
+        for (T t1 : existsList) {
+            for (T t2 : newList) {
+                if (keyExtractor.apply(t1, t2)) {
+                    map.put(t1, t2);
+                    break;
+                }
+            }
+        }
+
         // 计算差集（新增的对象，即在新列表中，但是不在旧列表中的对象）
         List<T> addList = newList.stream()
-                .filter(s -> updateList.stream().noneMatch(t -> keyExtractor.apply(t, s)))
+                .filter(s -> existsList.stream().noneMatch(t -> keyExtractor.apply(t, s)))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         // 计算差集（删除的对象，即在旧列表中，但是不在新列表中的对象）
         List<T> delList = oldList.stream()
-                .filter(s -> updateList.stream().noneMatch(t -> keyExtractor.apply(t, s)))
+                .filter(s -> existsList.stream().noneMatch(t -> keyExtractor.apply(t, s)))
                 .collect(Collectors.toCollection(ArrayList::new));
-        return new Diff<T>().setAddList(addList).setUpdateList(updateList).setDelList(delList);
+        return new Diff<T>().setAddList(addList).setDelList(delList).setUpdateMap(map);
     }
 
-    public static <T, R> Diff2<T, R> diff(List<T> oldList,
-                                          List<R> newList,
-                                          BiFunction<T, T, Boolean> keyExtractor1,
-                                          BiFunction<T, R, Boolean> keyExtractor2) {
+    public static <T, R> Diff2<T, R> diff2(List<T> oldList,
+                                           List<R> newList,
+                                           BiFunction<T, R, Boolean> keyExtractor) {
         // 计算交集
-        List<T> updateList = oldList.stream()
-                .filter(s -> newList.stream().anyMatch(t -> keyExtractor2.apply(s, t)))
+        List<T> existsList = oldList.stream()
+                .filter(s -> newList.stream().anyMatch(t -> keyExtractor.apply(s, t)))
                 .collect(Collectors.toCollection(ArrayList::new));
+
+        Map<T, R> map = new LinkedHashMap<>();
+        for (T t : existsList) {
+            for (R r : newList) {
+                if (keyExtractor.apply(t, r)) {
+                    map.put(t, r);
+                    break;
+                }
+            }
+        }
 
         // 计算差集（新增的对象，即在新列表中，但是不在旧列表中的对象）
         List<R> addList = newList.stream()
-                .filter(s -> updateList.stream().noneMatch(t -> keyExtractor2.apply(t, s)))
+                .filter(s -> existsList.stream().noneMatch(t -> keyExtractor.apply(t, s)))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         // 计算差集（删除的对象，即在旧列表中，但是不在新列表中的对象）
         List<T> delList = oldList.stream()
-                .filter(s -> updateList.stream().noneMatch(t -> keyExtractor1.apply(t, s)))
+                .filter(s -> newList.stream().noneMatch(t -> keyExtractor.apply(s, t)))
                 .collect(Collectors.toCollection(ArrayList::new));
-        return new Diff2<T, R>().setAddList(addList).setUpdateList(updateList).setDelList(delList);
+
+        return new Diff2<T, R>().setAddList(addList).setDelList(delList).setUpdateMap(map);
     }
 
     // 静态方法，返回一个流的包装类
@@ -156,6 +177,120 @@ public final class X {
     // 静态方法，返回一个流的包装类
     public static <K, V> MapListWrapper<K, V> ml(Map<K, List<V>> map) {
         return new MapListWrapper<>(map);
+    }
+
+    public static <V> Op<V> op(V v) {
+        return new Op<>(v);
+    }
+
+    public static <K, V> void hasKey(Map<K, V> map, K key, Consumer<V> has, Runnable noHas) {
+        if (map.containsKey(key)) {
+            final V v = map.get(key);
+            has.accept(v);
+        }
+        else {
+            noHas.run();
+        }
+
+    }
+
+
+    public final static class OpEmpty<V> extends Op<V> {
+
+        public OpEmpty(V v) {
+            super(v);
+        }
+
+        @Override
+        public V get() {
+            return null;
+        }
+    }
+
+    public static class Op<V> {
+
+        private final V v;
+
+        public Op(V v) {
+            this.v = v;
+        }
+
+        public <R> Op<R> map(Function<V, R> func) {
+            R r = func.apply(v);
+            return new Op<>(r);
+        }
+
+        public boolean isNotBlank() {
+            return !isBlank();
+        }
+
+        public void isBlank(Consumer<V> consumer) {
+            if (isBlank()) {
+                consumer.accept(v);
+            }
+        }
+
+        public void isBlankOrElse(Consumer<V> consumer, Runnable runnable) {
+            if (isBlank()) {
+                consumer.accept(v);
+            }
+            else {
+                runnable.run();
+            }
+        }
+
+
+        public void isNotBlank(Consumer<V> consumer) {
+            if (isNotBlank()) {
+                consumer.accept(v);
+            }
+        }
+
+        public void isNotBlankOrElse(Consumer<V> consumer, Runnable runnable) {
+            if (isNotBlank()) {
+                consumer.accept(v);
+            }
+            else {
+                runnable.run();
+            }
+        }
+
+        public boolean isBlank() {
+            if (v == null) {
+                return true;
+            }
+            else if (v instanceof Optional) {
+                return ((Optional<?>) v).isEmpty();
+            }
+            else if (v instanceof CharSequence vStr) {
+                return vStr.length() == 0;
+            }
+            else if (v instanceof Collection) {
+                return ((Collection<?>) v).isEmpty();
+            }
+            else if (v.getClass().isArray()) {
+                return Array.getLength(v) == 0;
+            }
+            else if (v instanceof Map) {
+                return ((Map<?, ?>) v).isEmpty();
+            }
+            // else
+            return false;
+        }
+
+        public V get() {
+            if (v == null) {
+                throw new NoSuchElementException("No value present");
+            }
+            return v;
+        }
+
+        public V get(V defaultValue) {
+            if (v == null) {
+                return defaultValue;
+            }
+            return v;
+        }
     }
 
     // 内部类，封装流操作
@@ -464,16 +599,29 @@ public final class X {
             List<T> result = new ArrayList<>();
             if (isNotEmpty()) {
                 result = list.stream()
-                        .filter(item -> Arrays.stream(getters).allMatch(getter -> {
-                            Object value = getter.apply(item);
-                            if (value != null) {
-                                if (value instanceof CharSequence) {
-                                    return !value.toString().isEmpty();
+                        .filter(item -> {
+                            if (getters == null || getters.length == 0) {
+                                if (item != null) {
+                                    if (item instanceof CharSequence) {
+                                        return !item.toString().isEmpty();
+                                    }
+                                    return true;
                                 }
-                                return true;
+                                return false;
                             }
-                            return false;
-                        }))
+                            else {
+                                return Arrays.stream(getters).allMatch(getter -> {
+                                    Object value = getter.apply(item);
+                                    if (value != null) {
+                                        if (value instanceof CharSequence) {
+                                            return !value.toString().isEmpty();
+                                        }
+                                        return true;
+                                    }
+                                    return false;
+                                });
+                            }
+                        })
                         .collect(Collectors.toCollection(ArrayList::new));
             }
             return new ListWrapper<>(result);
@@ -485,13 +633,23 @@ public final class X {
             List<T> result = new ArrayList<>();
             if (isNotEmpty()) {
                 result = list.stream()
-                        .filter(item -> Arrays.stream(getters).allMatch(getter -> {
-                            Object value = getter.apply(item);
-                            if (value == null) {
-                                return true;
+                        .filter(item -> {
+                            if (getters == null || getters.length == 0) {
+                                if (item == null) {
+                                    return true;
+                                }
+                                return (item instanceof CharSequence) && item.toString().isEmpty();
                             }
-                            return (value instanceof CharSequence) && value.toString().isEmpty();
-                        }))
+                            else {
+                                return Arrays.stream(getters).allMatch(getter -> {
+                                    Object value = getter.apply(item);
+                                    if (value == null) {
+                                        return true;
+                                    }
+                                    return (value instanceof CharSequence) && value.toString().isEmpty();
+                                });
+                            }
+                        })
                         .collect(Collectors.toCollection(ArrayList::new));
             }
             return new ListWrapper<>(result);
@@ -582,7 +740,8 @@ public final class X {
             Comparator<T> comparator;
             if (nullPosition == Sort.NullLast) {
                 comparator = Comparator.comparing(keyExtractor, Comparator.nullsLast(U::compareTo));
-            } else {
+            }
+            else {
                 comparator = Comparator.comparing(keyExtractor, Comparator.nullsFirst(U::compareTo));
             }
 
@@ -639,7 +798,8 @@ public final class X {
                 R r = mapper.apply(t);
                 if (r instanceof Number) {
                     sum = sum.add(new BigDecimal(String.valueOf(r)));
-                } else {
+                }
+                else {
                     throw new IllegalArgumentException("不是数字,不能计算");
                 }
             }
@@ -663,14 +823,15 @@ public final class X {
             for (T t : list) {
                 if (t instanceof Number) {
                     sum = sum.add(new BigDecimal(String.valueOf(t)));
-                } else {
+                }
+                else {
                     throw new IllegalArgumentException("不是数字,不能计算");
                 }
             }
             return sum;
         }
 
-        public <S, R> R reduce(Supplier<R> func, BiConsumer<R, T> consumer) {
+        public <R> R reduce(Supplier<R> func, BiConsumer<R, T> consumer) {
             R r = func.get();
             for (T t : list) {
                 consumer.accept(r, t);
@@ -685,6 +846,49 @@ public final class X {
                 consumer.accept(r, e);
             }
             return r;
+        }
+
+        public void split(int size, Consumer<List<T>> consumer) {
+            List<List<T>> parts = new ArrayList<>();
+
+            for (int i = 0; i < list.size(); i += size) {
+                // 计算子列表的结束索引
+                int end = Math.min(i + size, list.size());
+                // 创建子列表并添加到结果列表
+                parts.add(new ArrayList<>(list.subList(i, end)));
+            }
+
+            for (List<T> part : parts) {
+                consumer.accept(part);
+            }
+        }
+
+        public ListWrapper<T> limit(int i) {
+            List<T> result = list.stream()
+                    .limit(i)
+                    .collect(Collectors.toList());
+            return new ListWrapper<>(result);
+        }
+
+        public String joining(CharSequence symbol) {
+            StringJoiner sb = new StringJoiner(symbol);
+            for (T t : list) {
+                if (t instanceof CharSequence) {
+                    sb.add((CharSequence) t);
+                }
+                else {
+                    if (t != null) {
+                        sb.add(t.toString());
+                    }
+                }
+            }
+            return sb.toString();
+        }
+
+        public ListWrapper<T> concat(List<T> inputList) {
+            final List<T> newList = new ArrayList<>(list);
+            newList.addAll(inputList);
+            return new ListWrapper<>(newList);
         }
     }
 
@@ -792,7 +996,8 @@ public final class X {
             Objects.requireNonNull(runnable, "runnable is null");
             if (isFailure()) {
                 return this;
-            } else {
+            }
+            else {
                 try {
                     runnable.run();
                     return this;
@@ -806,7 +1011,8 @@ public final class X {
             Objects.requireNonNull(consumer, "consumer is null");
             if (isFailure()) {
                 return this;
-            } else {
+            }
+            else {
                 try {
                     consumer.accept(get());
                     return this;
@@ -1014,20 +1220,11 @@ public final class X {
     @Accessors(chain = true)
     public static class Diff<T> {
         private List<T> addList;
-        private List<T> updateList;
         private List<T> delList;
-
-        public List<T> getEffectList() {
-            return X.l(updateList).addAll(addList).list();
-        }
+        private Map<T, T> updateMap;
 
         public Diff<T> addList(Consumer<List<T>> consumer) {
             consumer.accept(addList);
-            return this;
-        }
-
-        public Diff<T> updateList(Consumer<List<T>> consumer) {
-            consumer.accept(updateList);
             return this;
         }
 
@@ -1035,28 +1232,77 @@ public final class X {
             consumer.accept(delList);
             return this;
         }
+
+
+        public Diff<T> updateList(BiConsumer<Diff<T>, Map<T, T>> biConsumer) {
+            if (updateMap != null && !updateMap.isEmpty()) {
+                biConsumer.accept(this, updateMap);
+            }
+            return this;
+        }
+
+        public Diff<T> forEachUpdateMapConsumer(BiConsumer<T, T> biConsumer) {
+            if (updateMap != null && !updateMap.isEmpty()) {
+                for (Map.Entry<T, T> entry : updateMap.entrySet()) {
+                    final T oldPo = entry.getKey();
+                    final T newPo = entry.getValue();
+                    biConsumer.accept(oldPo, newPo);
+                }
+            }
+            return this;
+        }
+
+        public List<T> getUpdateMapKeys() {
+            return updateMap.keySet().stream().toList();
+        }
+
+        public List<T> getUpdateMapValues() {
+            return updateMap.values().stream().toList();
+        }
     }
 
     @Data
     @Accessors(chain = true)
     public static class Diff2<T, R> {
         private List<R> addList;
-        private List<T> updateList;
         private List<T> delList;
+        private Map<T, R> updateMap;
 
         public Diff2<T, R> addList(Consumer<List<R>> consumer) {
             consumer.accept(addList);
             return this;
         }
 
-        public Diff2<T, R> updateList(Consumer<List<T>> consumer) {
-            consumer.accept(updateList);
-            return this;
-        }
 
         public Diff2<T, R> delList(Consumer<List<T>> consumer) {
             consumer.accept(delList);
             return this;
+        }
+
+        public Diff2<T, R> updateList(BiConsumer<Diff2<T, R>, Map<T, R>> biConsumer) {
+            if (updateMap != null && !updateMap.isEmpty()) {
+                biConsumer.accept(this, updateMap);
+            }
+            return this;
+        }
+
+        public Diff2<T, R> forEachUpdateMapConsumer(BiConsumer<T, R> biConsumer) {
+            if (updateMap != null && !updateMap.isEmpty()) {
+                for (Map.Entry<T, R> entry : updateMap.entrySet()) {
+                    final T oldPo = entry.getKey();
+                    final R newPo = entry.getValue();
+                    biConsumer.accept(oldPo, newPo);
+                }
+            }
+            return this;
+        }
+
+        public List<T> getUpdateMapKeys() {
+            return updateMap.keySet().stream().toList();
+        }
+
+        public List<R> getUpdateMapValues() {
+            return updateMap.values().stream().toList();
         }
     }
 
