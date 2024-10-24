@@ -1,6 +1,5 @@
 package com.zyf.util;
 
-
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -8,16 +7,68 @@ import java.io.*;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.*;
 import java.util.stream.Collectors;
 
-public final class X {
+public class X {
 
-    public static <T> Diff<T> diff(List<T> oldList,
-                                   List<T> newList,
-                                   BiFunction<T, T, Boolean> keyExtractor) {
+    //    public static <K, V> void hasKey(Map<K, V> map, K key, Consumer<V> has, Runnable noHas) {
+//        if (map.containsKey(key)) {
+//            final V v = map.get(key);
+//            has.accept(v);
+//        }
+//        else {
+//            noHas.run();
+//        }
+//
+//    }
+    public static <K, V> Map<K, V> asMap(K k, V v) {
+        final Map<K, V> map = new HashMap<>();
+        map.put(k, v);
+        return map;
+    }
+
+    @SafeVarargs
+    public static <T> List<T> asList(T... elements) {
+        Objects.requireNonNull(elements, "elements is null");
+        return new ArrayList<>(Arrays.asList(elements));
+    }
+
+    public static <K, V> MapStream<K, V> map(K k, V v) {
+        final Map<K, V> map = new HashMap<>();
+        map.put(k, v);
+        return new MapStream<>(map);
+    }
+
+    // 静态工厂方法
+    @SafeVarargs
+    public static <T> ListStream<T> list(T... elements) {
+        return new ListStream<>(asList(elements));
+    }
+
+    // 静态工厂方法
+    public static <T> ListStream<T> list(List<T> list) {
+        return new ListStream<>(list == null ? new ArrayList<>() : list);
+    }
+
+
+    public static <V> Op<V> op(V v) {
+        return new Op<>(v);
+    }
+
+    /**
+     * 根据某个比较逻辑，计算出两个列表之前的差别，返回一个数组，数组中依次为 符合条件的新增条目列表，符合条件的删除条目列表，符合条件的未变更条目列表
+     *
+     * @param <T>          待处理列表中元素的类型
+     * @param oldList      旧的列表数据，不能为 null
+     * @param newList      新的列表数据，不能为 null
+     * @param keyExtractor 用来判断元素是否为同一个元素的比较逻辑
+     * @return 包含三个 List 的数组，分别为 新增元素列表，删除元素列表，未变更元素列表
+     */
+    public static <T> Diff<T> getDiff(List<T> oldList,
+                                      List<T> newList,
+                                      BiFunction<T, T, Boolean> keyExtractor) {
         // 计算交集
         List<T> existsList = oldList.stream()
                 .filter(s -> newList.stream().anyMatch(t -> keyExtractor.apply(t, s)))
@@ -45,9 +96,18 @@ public final class X {
         return new Diff<T>().setAddList(addList).setDelList(delList).setUpdateMap(map);
     }
 
-    public static <T, R> Diff2<T, R> diff2(List<T> oldList,
-                                           List<R> newList,
-                                           BiFunction<T, R, Boolean> keyExtractor) {
+    /**
+     * 根据某个比较逻辑，计算出两个列表之前的差别，返回一个数组，数组中依次为 符合条件的新增条目列表，符合条件的删除条目列表，符合条件的未变更条目列表
+     *
+     * @param <T>          待处理列表中元素的类型
+     * @param oldList      旧的列表数据，不能为 null
+     * @param newList      新的列表数据，不能为 null
+     * @param keyExtractor 用来判断元素是否为同一个元素的比较逻辑
+     * @return 包含三个 List 的数组，分别为 新增元素列表，删除元素列表，未变更元素列表
+     */
+    public static <T, R> Diff2<T, R> getDiff2(List<T> oldList,
+                                              List<R> newList,
+                                              BiFunction<T, R, Boolean> keyExtractor) {
         // 计算交集
         List<T> existsList = oldList.stream()
                 .filter(s -> newList.stream().anyMatch(t -> keyExtractor.apply(s, t)))
@@ -76,8 +136,27 @@ public final class X {
         return new Diff2<T, R>().setAddList(addList).setDelList(delList).setUpdateMap(map);
     }
 
+    public static <T> T clone(T obj) {
+        if (!(obj instanceof Serializable)) {
+            throw new RuntimeException("对象没有实现 Serializable 接口");
+        }
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(obj);
+            oos.close();
+            ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+            ObjectInputStream ois = new ObjectInputStream(bis);
+            Object newObj = ois.readObject();
+            ois.close();
+            return (T) newObj;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     // 静态方法，返回一个流的包装类
-    public static <T> Try<T> Try(CheckedFunction0<T> supplier) {
+    public static <T> Try<T> tryBegin(CheckedFunction0<T> supplier) {
         Objects.requireNonNull(supplier, "supplier is null");
         try {
             return new Try.Success<>(supplier.apply());
@@ -86,17 +165,12 @@ public final class X {
         }
     }
 
-    public static <T> Try<T> TrySupplier(Supplier<? extends T> supplier) {
+    public static <T> Try<T> trySupplier(Supplier<? extends T> supplier) {
         Objects.requireNonNull(supplier, "supplier is null");
-        return Try(supplier::get);
+        return tryBegin(supplier::get);
     }
 
-    public static <T> Try<T> TryCallable(Callable<? extends T> callable) {
-        Objects.requireNonNull(callable, "callable is null");
-        return Try(callable::call);
-    }
-
-    public static Try<Void> TryRun(CheckedRunnable runnable) {
+    public static Try<Void> tryRun(CheckedRunnable runnable) {
         Objects.requireNonNull(runnable, "runnable is null");
         try {
             runnable.run();
@@ -106,104 +180,779 @@ public final class X {
         }
     }
 
-    public static Try<Void> TryRunnable(Runnable runnable) {
-        Objects.requireNonNull(runnable, "runnable is null");
-        return TryRun(runnable::run);
-    }
+    public static class ListStream<T> {
+        private final Iterable<T> source;
 
-
-    // 静态方法，返回一个流的包装类
-    public static <T> ListWrapper<T> l(List<T> list) {
-        if (list == null || list.isEmpty()) {
-            list = new ArrayList<>();
+        private ListStream(Iterable<T> source) {
+            this.source = source;
         }
-        return new ListWrapper<>(list);
-    }
 
-    public static <T> ListWrapper<T> warpperList(T element) {
-        Objects.requireNonNull(element, "elements is null");
-        final List<T> list = new ArrayList<>();
-        list.add(element);
-        return new ListWrapper<>(list);
-    }
+        public static <T> ListStream<T> of(Iterable<T> source) {
+            return new ListStream<>(Objects.requireNonNull(source));
+        }
 
-    public static <T> Set<T> asSet() {
-        return new HashSet<>();
-    }
+        public ListStream<T> add(T t) {
+            final List<T> list = toList();
+            list.add(t);
+            return new ListStream<>(list);
+        }
 
-    public static <K, V> MapWrapper<K, V> wapperMap(K k, V v) {
-        final Map<K, V> map = new HashMap<>();
-        map.put(k, v);
-        return new MapWrapper<>(map);
-    }
 
-    public static <K, V> Map<K, V> asMap(K k, V v) {
-        final Map<K, V> map = new HashMap<>();
-        map.put(k, v);
-        return map;
-    }
+        public ListStream<T> add(int index, T t) {
+            final List<T> list = toList();
+            list.add(index, t);
+            return new ListStream<>(list);
+        }
 
-    @SafeVarargs
-    public static <T> List<T> asList(T... elements) {
-        Objects.requireNonNull(elements, "elements is null");
-        return new ArrayList<>(Arrays.asList(elements));
-    }
 
-    @SafeVarargs
-    public static <T> ListWrapper<T> warpperList(T... elements) {
-        Objects.requireNonNull(elements, "elements is null");
-        final List<T> list = new ArrayList<>(Arrays.asList(elements));
-        return new ListWrapper<>(list);
-    }
+        public ListStream<T> addAll(List<T> ts) {
+            final List<T> list = toList();
+            list.addAll(ts);
+            return new ListStream<>(list);
+        }
 
-//    public static class XMap<K, V> extends HashMap<K, V>{
-//        public XMap<K, V> ofMap(K key, V value) {
-//            super.put(key, value);
-//            return this;
+
+        @SafeVarargs
+        public final ListStream<T> add(T... ts) {
+            final List<T> list = toList();
+            list.addAll(asList(ts));
+            return new ListStream<>(list);
+        }
+//        public ListWrapper<T> skip(int skipIndex) {
+//            return new ListWrapper<>(list.subList(skipIndex, list.size()));
 //        }
-//    }
-//    public static class XList<T> extends ArrayList<T>{
-//        public XList<T> ofList(T value) {
-//            super.add(value);
-//            return this;
+//
+//        public ListWrapper<T> sub(int subLen) {
+//            return new ListWrapper<>(list.subList(0, subLen));
 //        }
-//    }
+//
+//        public ListWrapper<T> sub(int subBegin, int subEnd) {
+//            return new ListWrapper<>(list.subList(subBegin, subEnd + 1));
+//        }
+//
+//        public ListWrapper<T> reversed() {
+//            return new ListWrapper<>(new AbstractList<>() {
+//                @Override
+//                public T get(int index) {
+//                    return list.get(list.size() - 1 - index);
+//                }
+//
+//                @Override
+//                public int size() {
+//                    return list.size();
+//                }
+//            });
+//        }
 
-    // 静态方法，返回一个流的包装类
-    public static <K, V> MapWrapper<K, V> m(Map<K, V> map) {
-        return new MapWrapper<>(map);
-    }
-
-    // 静态方法，返回一个流的包装类
-    public static <K, V> MapListWrapper<K, V> ml(Map<K, List<V>> map) {
-        return new MapListWrapper<>(map);
-    }
-
-    public static <V> Op<V> op(V v) {
-        return new Op<>(v);
-    }
-
-    public static <K, V> void hasKey(Map<K, V> map, K key, Consumer<V> has, Runnable noHas) {
-        if (map.containsKey(key)) {
-            final V v = map.get(key);
-            has.accept(v);
+        //
+//        // 过滤或的实现
+//        @SuppressWarnings("unused")
+//        public boolean anyMatch(Predicate<T> predicate) {
+//            return list.stream().anyMatch(predicate);
+//        }
+//
+//        // 过滤或的实现
+//        @SuppressWarnings("unused")
+//        public boolean noneMatch(Predicate<T> predicate) {
+//            return list.stream().noneMatch(predicate);
+//        }
+//
+//        // 获取第一个元素
+//        public T findFirst() {
+//            return list.get(0);
+//        }
+//
+//
+//        public ListWrapper<T> limit(int i) {
+//            List<T> result = list.stream()
+//                    .limit(i)
+//                    .collect(Collectors.toList());
+//            return new ListWrapper<>(result);
+//        }
+//
+//        public String joining(CharSequence symbol) {
+//            StringJoiner sb = new StringJoiner(symbol);
+//            for (T t : list) {
+//                if (t instanceof CharSequence) {
+//                    sb.add((CharSequence) t);
+//                }
+//                else {
+//                    if (t != null) {
+//                        sb.add(t.toString());
+//                    }
+//                }
+//            }
+//            return sb.toString();
+//        }
+//
+//        public ListWrapper<T> concat(List<T> inputList) {
+//            final List<T> newList = new ArrayList<>(list);
+//            newList.addAll(inputList);
+//            return new ListWrapper<>(newList);
+//        }
+        // 过滤或的实现
+        @SafeVarargs
+        public final ListStream<T> filterOrs(Predicate<T>... predicates) {
+            return ors(predicates);
         }
-        else {
-            noHas.run();
+
+        // 过滤或的实现
+        @SafeVarargs
+        public final ListStream<T> ors(Predicate<T>... predicates) {
+            return new ListStream<>(createFilteredIterable(elem ->
+                    Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem))));
+        }
+
+        public ListStream<T> filter(Predicate<? super T> predicate) {
+            return filters(predicate);
+        }
+
+        @SafeVarargs
+        public final ListStream<T> ands(Predicate<T>... predicates) {
+            return filters(predicates);
+        }
+
+        @SafeVarargs
+        public final ListStream<T> filters(Predicate<? super T>... predicates) {
+            Objects.requireNonNull(predicates);
+            return new ListStream<>(createFilteredIterable(elem ->
+                    Arrays.stream(predicates).allMatch(predicate -> predicate.test(elem))));
+        }
+
+        @SafeVarargs
+        public final ListStream<T> filterNotNull(Function<T, ?>... functions) {
+            return filterNotBlank(functions);
+        }
+
+        @SafeVarargs
+        public final ListStream<T> isNull(Function<T, ?>... getters) {
+            return filterBlank(getters);
+        }
+
+        @SafeVarargs
+        public final ListStream<T> isNotNull(Function<T, ?>... getters) {
+            return filterNotBlank(getters);
+        }
+
+
+        @SafeVarargs
+        public final ListStream<T> isBlank(Function<T, ?>... getters) {
+            return filterBlank(getters);
+        }
+
+        @SafeVarargs
+        public final ListStream<T> isNotBlank(Function<T, ?>... getters) {
+            return filterNotBlank(getters);
+        }
+
+        @SafeVarargs
+        public final ListStream<T> filterNotBlank(Function<T, ?>... functions) {
+            return new ListStream<>(createFilteredIterable(elem -> isNotBlankElement(elem, functions)));
+        }
+
+        @SafeVarargs
+        public final ListStream<T> filterBlank(Function<T, ?>... functions) {
+            return new ListStream<>(createFilteredIterable(elem -> isBlankElement(elem, functions)));
+        }
+
+        @SafeVarargs
+        public final ListStream<T> filterIsNotBlank(Function<T, ?>... functions) {
+            return new ListStream<>(createFilteredIterable(elem -> isNotBlankElement(elem, functions)));
+        }
+
+        @SafeVarargs
+        public final ListStream<T> filterIsBlank(Function<T, ?>... functions) {
+            return new ListStream<>(createFilteredIterable(elem -> isBlankElement(elem, functions)));
+        }
+
+        private boolean isBlankElement(T elem, Function<T, ?>[] functions) {
+            if (functions == null || functions.length == 0) {
+                if (elem == null) {
+                    return true;
+                }
+                if (elem instanceof CharSequence str) {
+                    return str.isEmpty() || "".contentEquals(str);
+                }
+                return false;
+            }
+
+            return Arrays.stream(functions).allMatch(fun -> {
+                Object value = fun.apply(elem);
+                if (value == null) {
+                    return true;
+                }
+                if (value instanceof CharSequence str) {
+                    return str.isEmpty() || "".contentEquals(str);
+                }
+                return false;
+            });
+        }
+
+
+        private boolean isNotBlankElement(T elem, Function<T, ?>[] functions) {
+            if (functions == null || functions.length == 0) {
+                if (elem == null) {
+                    return false;
+                }
+                if (elem instanceof CharSequence str) {
+                    return !str.isEmpty() && !"".contentEquals(str);
+                }
+                return true;
+            }
+
+            return Arrays.stream(functions).allMatch(fun -> {
+                Object value = fun.apply(elem);
+                if (value == null) {
+                    return false;
+                }
+                if (value instanceof CharSequence) {
+                    return !value.toString().isEmpty();
+                }
+                return true;
+            });
+        }
+
+        private Iterable<T> createFilteredIterable(Predicate<T> filterCondition) {
+            return () -> new Iterator<>() {
+                final Iterator<T> iterator = source.iterator();
+                T nextElement;
+                boolean hasNextComputed = false;
+                boolean hasNextResult = false;
+
+                @Override
+                public boolean hasNext() {
+                    if (!hasNextComputed) {
+                        computeNext(filterCondition);
+                    }
+                    return hasNextResult;
+                }
+
+                @Override
+                public T next() {
+                    if (!hasNextComputed) {
+                        computeNext(filterCondition);
+                    }
+                    if (!hasNextResult) {
+                        throw new NoSuchElementException();
+                    }
+                    hasNextComputed = false;
+                    return nextElement;
+                }
+
+                private void computeNext(Predicate<T> condition) {
+                    while (iterator.hasNext()) {
+                        T elem = iterator.next();
+                        if (condition.test(elem)) {
+                            nextElement = elem;
+                            hasNextResult = true;
+                            hasNextComputed = true;
+                            return;
+                        }
+                    }
+                    hasNextResult = false;
+                    hasNextComputed = true;
+                }
+            };
+        }
+
+        /**
+         * 将元素转换为Map，使用keyMapper生成key
+         * 如果有重复的key，保留最后一个值
+         */
+        public <K> Map<K, T> toMap(Function<T, K> keyMapper) {
+            return toMap(keyMapper, Function.identity());
+        }
+
+        /**
+         * 将元素转换为Map，使用keyMapper生成key，valueMapper生成value
+         * 如果有重复的key，保留最后一个值
+         */
+        public <K, V> Map<K, V> toMap(Function<T, K> keyMapper, Function<T, V> valueMapper) {
+            return toMap(keyMapper, valueMapper, (v1, v2) -> v2);
+        }
+
+        /**
+         * 将元素转换为Map，使用keyMapper生成key，valueMapper生成value
+         * 如果有重复的key，使用mergeFunction合并值
+         */
+        public <K, V> Map<K, V> toMap(
+                Function<T, K> keyMapper,
+                Function<T, V> valueMapper,
+                BinaryOperator<V> mergeFunction) {
+            Objects.requireNonNull(keyMapper, "keyMapper cannot be null");
+            Objects.requireNonNull(valueMapper, "valueMapper cannot be null");
+            Objects.requireNonNull(mergeFunction, "mergeFunction cannot be null");
+
+            if (isEmpty()) {
+                return new HashMap<>();
+            }
+
+            Map<K, V> result = new HashMap<>();
+            for (T element : source) {
+                if (element != null) {
+                    K key = keyMapper.apply(element);
+                    if (key != null) {
+                        V value = valueMapper.apply(element);
+                        result.merge(key, value, mergeFunction);
+                    }
+                }
+            }
+            return result;
+        }
+
+        /**
+         * 将元素转换为Map，使用keyMapper生成key
+         * 如果有重复的key，将值收集到List中
+         */
+        public <K> MapListStream<K, T> groupBy(Function<T, K> keyMapper) {
+            return groupBy(keyMapper, Function.identity());
+        }
+
+        /**
+         * 将元素转换为Map，使用keyMapper生成key，valueMapper生成value
+         * 如果有重复的key，将值收集到List中
+         */
+        public <K, V> MapListStream<K, V> groupBy(
+                Function<T, K> keyMapper,
+                Function<T, V> valueMapper) {
+            Objects.requireNonNull(keyMapper, "keyMapper cannot be null");
+            Objects.requireNonNull(valueMapper, "valueMapper cannot be null");
+
+            Map<K, List<V>> result = new HashMap<>();
+            if (isEmpty()) {
+                return new MapListStream<>(result);
+            }
+
+            for (T element : source) {
+                if (element != null) {
+                    K key = keyMapper.apply(element);
+                    V value = valueMapper.apply(element);
+                    result.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
+                }
+            }
+            return new MapListStream<>(result);
+        }
+
+        /**
+         * 将元素转换为LinkedHashMap，保持插入顺序
+         */
+        public <K> Map<K, T> toLinkedMap(Function<T, K> keyMapper) {
+            return toLinkedMap(keyMapper, Function.identity());
+        }
+
+        /**
+         * 将元素转换为LinkedHashMap，保持插入顺序
+         */
+        public <K, V> Map<K, V> toLinkedMap(
+                Function<T, K> keyMapper,
+                Function<T, V> valueMapper) {
+            Objects.requireNonNull(keyMapper, "keyMapper cannot be null");
+            Objects.requireNonNull(valueMapper, "valueMapper cannot be null");
+
+            if (isEmpty()) {
+                return new LinkedHashMap<>();
+            }
+
+            Map<K, V> result = new LinkedHashMap<>();
+            for (T element : source) {
+                if (element != null) {
+                    K key = keyMapper.apply(element);
+                    if (key != null) {
+                        V value = valueMapper.apply(element);
+                        result.put(key, value);
+                    }
+                }
+            }
+            return result;
+        }
+
+        public <R> ListStream<R> map(Function<? super T, ? extends R> mapper) {
+            Objects.requireNonNull(mapper);
+            return new ListStream<>(() -> new Iterator<>() {
+                final Iterator<T> iterator = source.iterator();
+
+                public boolean hasNext() {
+                    return iterator.hasNext();
+                }
+
+                public R next() {
+                    return mapper.apply(iterator.next());
+                }
+            });
+        }
+
+        public <R> double sumDouble(Function<T, R> mapper) {
+            return sumBigDecimal(mapper).doubleValue();
+        }
+
+        public <R> int sumInt(Function<T, R> mapper) {
+            return sumBigDecimal(mapper).intValue();
+        }
+
+        public <R> long sumLong(Function<T, R> mapper) {
+            return sumBigDecimal(mapper).longValue();
+        }
+
+        public <R> BigDecimal sumBigDecimal(Function<T, R> mapper) {
+            BigDecimal sum = new BigDecimal("0.0");
+            for (T t : source) {
+                R r = mapper.apply(t);
+                if (r instanceof Number) {
+                    sum = sum.add(new BigDecimal(String.valueOf(r)));
+                }
+                else {
+                    throw new IllegalArgumentException("不是数字,不能计算");
+                }
+            }
+            return sum;
+        }
+
+        public Double sumDouble() {
+            return sumBigDecimal().doubleValue();
+        }
+
+        public Integer sumInt() {
+            return sumBigDecimal().intValue();
+        }
+
+        public Long sumLong() {
+            return sumBigDecimal().longValue();
+        }
+
+        public BigDecimal sumBigDecimal() {
+            BigDecimal sum = new BigDecimal("0.0");
+            for (T t : source) {
+                if (t instanceof Number) {
+                    sum = sum.add(new BigDecimal(String.valueOf(t)));
+                }
+                else {
+                    throw new IllegalArgumentException("不是数字,不能计算");
+                }
+            }
+            return sum;
+        }
+
+        // 排序方法
+        @SuppressWarnings("unused")
+        public ListStream<T> sort(Comparator<T> comparator) {
+            // 转换为List以进行排序
+            List<T> sortedList = toList();
+            // 执行排序
+            sortedList.sort(comparator);
+            return new ListStream<>(sortedList);
+        }
+
+        /**
+         * 根据提取的比较键对元素进行排序
+         *
+         * @param keyExtractor 键提取函数
+         * @param order        排序顺序（升序/降序）
+         * @param nullPosition 空值位置（前/后）
+         * @return 排序后的ListStream
+         */
+        public <U extends Comparable<? super U>> ListStream<T> sort(
+                Function<? super T, ? extends U> keyExtractor,
+                Sort order,
+                Sort nullPosition) {
+            Objects.requireNonNull(keyExtractor, "keyExtractor cannot be null");
+            Objects.requireNonNull(order, "order cannot be null");
+            Objects.requireNonNull(nullPosition, "nullPosition cannot be null");
+
+            if (isEmpty()) {
+                return this;
+            }
+
+            // 验证排序参数
+            validateSortParameters(order, nullPosition);
+
+            // 转换为List以进行排序
+            List<T> sortedList = toList();
+
+            // 创建比较器
+            Comparator<T> comparator = createComparator(keyExtractor, order, nullPosition);
+
+            // 执行排序
+            sortedList.sort(comparator);
+
+            return new ListStream<>(sortedList);
+        }
+
+        /**
+         * 创建排序用的比较器
+         */
+        private <U extends Comparable<? super U>> Comparator<T> createComparator(
+                Function<? super T, ? extends U> keyExtractor,
+                Sort order,
+                Sort nullPosition) {
+
+            // 基础比较器
+            Comparator<T> baseComparator = (o1, o2) -> {
+                U key1 = keyExtractor.apply(o1);
+                U key2 = keyExtractor.apply(o2);
+
+                // 处理空值情况
+                if (key1 == null && key2 == null) {
+                    return 0;
+                }
+                if (key1 == null) {
+                    return nullPosition == Sort.NullFirst ? -1 : 1;
+                }
+                if (key2 == null) {
+                    return nullPosition == Sort.NullFirst ? 1 : -1;
+                }
+
+                // 正常比较
+                int comparison = key1.compareTo(key2);
+                return order == Sort.Asc ? comparison : -comparison;
+            };
+
+            return baseComparator;
+        }
+
+        /**
+         * 验证排序参数
+         */
+        private void validateSortParameters(Sort order, Sort nullPosition) {
+            // 验证order参数
+            if (order != Sort.Asc && order != Sort.Desc) {
+                throw new IllegalArgumentException("order must be either Asc or Desc");
+            }
+
+            // 验证nullPosition参数
+            if (nullPosition != Sort.NullFirst && nullPosition != Sort.NullLast) {
+                throw new IllegalArgumentException("nullPosition must be either NullFirst or NullLast");
+            }
+        }
+
+        /**
+         * 简化版排序方法 - 升序，空值在最后
+         */
+        public <U extends Comparable<? super U>> ListStream<T> sortAsc(
+                Function<? super T, ? extends U> keyExtractor) {
+            return sort(keyExtractor, Sort.Asc, Sort.NullLast);
+        }
+
+        /**
+         * 简化版排序方法 - 降序，空值在最后
+         */
+        public <U extends Comparable<? super U>> ListStream<T> sortDesc(
+                Function<? super T, ? extends U> keyExtractor) {
+            return sort(keyExtractor, Sort.Desc, Sort.NullLast);
+        }
+
+        /**
+         * 将嵌套的集合展平成单层集合
+         *
+         * @param mapper 将元素转换为Iterable的函数
+         * @return 新的ListStream
+         */
+        public <R> ListStream<R> flatMap(Function<? super T, ? extends Iterable<? extends R>> mapper) {
+            Objects.requireNonNull(mapper, "mapper cannot be null");
+
+            if (isEmpty()) {
+                return new ListStream<>(new ArrayList<>());
+            }
+
+            return new ListStream<>(new FlatteningIterable<>(source, mapper));
+        }
+
+        public final ListStream<T> peek(Consumer<T> consumer) {
+            return new ListStream<>(() -> new Iterator<>() {
+                final Iterator<T> iterator = source.iterator();
+
+                public boolean hasNext() {
+                    return iterator.hasNext();
+                }
+
+                public T next() {
+                    final T item = iterator.next();
+                    consumer.accept(item);
+                    return item;
+                }
+            });
+        }
+
+        public ListStream<T> peekStream(Consumer<ListStream<T>> streamOperation) {
+            streamOperation.accept(new ListStream<>(source));
+            return this;
+        }
+
+        public <R> R reduce(Supplier<R> func, BiConsumer<R, T> consumer) {
+            R r = func.get();
+            for (T t : source) {
+                consumer.accept(r, t);
+            }
+            return r;
+        }
+
+        public <S, E, R> R reduce(Supplier<R> supplier, Function<T, E> func, BiConsumer<R, E> consumer) {
+            R r = supplier.get();
+            for (T t : source) {
+                E e = func.apply(t);
+                consumer.accept(r, e);
+            }
+            return r;
+        }
+
+        public void forEach(Consumer<? super T> action) {
+            Objects.requireNonNull(action);
+            source.forEach(action);
+        }
+
+        public void split(int size, Consumer<List<T>> consumer) {
+            List<List<T>> parts = new ArrayList<>();
+            int i = 0;
+            List<T> temp = null;
+            for (T t : source) {
+                if (temp == null || i % size == 0) {
+                    temp = new ArrayList<>(size);
+                    parts.add(temp);
+                }
+                temp.add(t);
+                ++i;
+            }
+
+            for (List<T> part : parts) {
+                consumer.accept(part);
+            }
+        }
+
+        private boolean isNotEmpty() {
+            return !isEmpty();
+        }
+
+        // 判断是否为空的方法
+        public boolean isEmpty() {
+            if (source == null) {
+                return true;
+            }
+
+            // 如果是Collection类型，直接使用isEmpty()方法
+            if (source instanceof Collection) {
+                return ((Collection<?>) source).isEmpty();
+            }
+
+            // 如果是普通Iterable，检查是否有第一个元素
+            return !source.iterator().hasNext();
+        }
+
+        // 去重方法，按指定属性去重
+        public ListStream<T> distinct(Function<T, ?> keyExtractor) {
+            Set<Object> seen = ConcurrentHashMap.newKeySet();
+            return new ListStream<>(createFilteredIterable(elem -> {
+                if (seen.contains(keyExtractor.apply(elem))) {
+                    return false;
+                }
+                seen.add(keyExtractor.apply(elem));
+                return true;
+            }));
+        }
+
+        // 去重方法（重载）
+        public ListStream<T> distinct() {
+            Set<Object> seen = ConcurrentHashMap.newKeySet();
+            return new ListStream<>(createFilteredIterable(elem -> {
+                if (seen.contains(elem)) {
+                    return false;
+                }
+                seen.add(elem);
+                return true;
+            }));
+        }
+
+        // 获取大小的方法
+        public long size() {
+            if (source == null) {
+                return 0;
+            }
+
+            // 如果是Collection类型，直接使用size()方法
+            if (source instanceof Collection) {
+                return ((Collection<?>) source).size();
+            }
+
+            // 如果是普通Iterable，需要遍历计数
+            return count();
+        }
+
+        public long count() {
+            if (isEmpty()) {
+                return 0;
+            }
+            // 如果是Collection类型，直接返回size
+            if (source instanceof Collection) {
+                return ((Collection<?>) source).size();
+            }
+            // 否则遍历计数
+            long count = 0;
+            for (T ignored : source) {
+                count++;
+            }
+            return count;
+        }
+
+        public List<T> toList() {
+            List<T> result = new ArrayList<>();
+            source.forEach(result::add);
+            return result;
+        }
+
+        // 排序顺序枚举
+        public enum Sort {
+            Asc, Desc,
+            NullFirst, NullLast
         }
 
     }
 
+    // 内部类，封装流操作
+    public final static class MapListStream<K, V> {
+        private final Map<K, List<V>> map;
 
-    public final static class OpEmpty<V> extends Op<V> {
-
-        public OpEmpty(V v) {
-            super(v);
+        public MapListStream(Map<K, List<V>> map) {
+            this.map = map;
         }
 
-        @Override
-        public V get() {
-            return null;
+
+        public Map<K, List<V>> toMap() {
+            return map;
+        }
+
+        public List<V> getValues(K key) {
+            if (map.containsKey(key)) {
+                return map.get(key);
+            }
+            return new ArrayList<>();
+        }
+    }
+
+    // 内部类，封装流操作
+    public final static class MapStream<K, V> {
+        private final Map<K, V> map;
+
+        public MapStream(Map<K, V> map) {
+            this.map = map;
+        }
+
+        public void hasKey(K key, Consumer<V> consumer) {
+            if (map.containsKey(key)) {
+                consumer.accept(map.get(key));
+            }
+        }
+
+        public void hasKey(K key, V defaultValue, Consumer<V> consumer) {
+            if (map.containsKey(key)) {
+                consumer.accept(map.getOrDefault(key, defaultValue));
+            }
+        }
+
+        public MapStream<K, V> put(K k, V v) {
+            map.put(k, v);
+            return this;
+        }
+
+        public Map<K, V> map() {
+            return map;
         }
     }
 
@@ -293,678 +1042,150 @@ public final class X {
         }
     }
 
-    // 内部类，封装流操作
-    public final static class MapWrapper<K, V> {
-        private final Map<K, V> map;
+    @Data
+    @Accessors(chain = true)
+    public static class Diff<T> {
 
-        public MapWrapper(Map<K, V> map) {
-            this.map = map;
+        private List<T> addList;
+        private List<T> delList;
+        // 已存在的对象集合 对应的新值
+        private Map<T, T> updateMap;
+
+        public List<T> getEffectList() {
+            final List<T> list = new ArrayList<>(addList);
+            list.addAll(getExistsList());
+            return list;
         }
 
-        public void hasKey(K key, Consumer<V> consumer) {
-            if (map.containsKey(key)) {
-                consumer.accept(map.get(key));
+        public Diff<T> addConsumer(BiConsumer<Diff<T>, List<T>> biConsumer) {
+            if (isNotEmpty(addList)) {
+                biConsumer.accept(this, addList);
             }
-        }
-
-
-        public void hasKey(K key, V defaultValue, Consumer<V> consumer) {
-            if (map.containsKey(key)) {
-                consumer.accept(map.getOrDefault(key, defaultValue));
-            }
-        }
-
-
-        public MapWrapper<K, V> put(K k, V v) {
-            map.put(k, v);
             return this;
         }
 
-        public Map<K, V> map() {
-            return map;
+        public Diff<T> delConsumer(BiConsumer<Diff<T>, List<T>> biConsumer) {
+            if (isNotEmpty(delList)) {
+                biConsumer.accept(this, delList);
+            }
+            return this;
+        }
+
+        private boolean isNotEmpty(List<T> list) {
+            return list != null && !list.isEmpty();
+        }
+
+        public Diff<T> existsConsumer(BiConsumer<Diff<T>, List<T>> biConsumer) {
+            final List<T> existsList = getExistsList();
+            if (isNotEmpty(existsList)) {
+                biConsumer.accept(this, existsList);
+            }
+            return this;
+        }
+
+
+        public Diff<T> updateConsumer(BiConsumer<Diff<T>, Map<T, T>> biConsumer) {
+            if (updateMap != null && !updateMap.isEmpty()) {
+                biConsumer.accept(this, updateMap);
+            }
+            return this;
+        }
+
+        public Diff<T> forEachUpdateMapConsumer(BiConsumer<T, T> biConsumer) {
+            if (updateMap != null && !updateMap.isEmpty()) {
+                for (Map.Entry<T, T> entry : updateMap.entrySet()) {
+                    final T oldPo = entry.getKey();
+                    final T newPo = entry.getValue();
+                    biConsumer.accept(oldPo, newPo);
+                }
+            }
+            return this;
+        }
+
+        public List<T> getExistsList() {
+            return getUpdateMapKeys();
+        }
+
+        public List<T> getUpdateMapKeys() {
+            return updateMap.keySet().stream().toList();
+        }
+
+        public List<T> getUpdateMapValues() {
+            return updateMap.values().stream().toList();
         }
     }
 
-    // 内部类，封装流操作
-    public final static class MapListWrapper<K, V> {
-        private final Map<K, List<V>> map;
+    @Data
+    @Accessors(chain = true)
+    public static class Diff2<T, R> {
 
-        public MapListWrapper(Map<K, List<V>> map) {
-            this.map = map;
+        private List<R> addList;
+        private List<T> delList;
+        // 已存在的对象集合 对应的新值
+        private Map<T, R> updateMap;
+
+        public List<Object> getEffectList() {
+            final List<Object> list = new ArrayList<>(addList);
+            list.addAll(getExistsList());
+            return list;
         }
 
-        // 扁平化处理 Map 的方法
-//        @SuppressWarnings("unused")
-//        public ListWrapper<V> flatMap() {
-//            List<V> result = new ArrayList<>();
-//            if (MapUtil.isNotEmpty(map)) {
-//                result.addAll(map.values());
-//            }
-//            return new ListWrapper<>(result);
-//        }
-
-        //        public <E> MapListWrapper<K, E> mapValues(Function<List<V>, List<E>> func) {
-//            final Map<K, List<E>> newMap = new LinkedHashMap<>();
-//            for (Map.Entry<K, List<V>> entry : map.entrySet()) {
-//                final K key = entry.getKey();
-//                final List<V> values = entry.getValue();
-//                List<E> rList = new ArrayList<>(func.apply(values));
-//                newMap.put(key, rList);
-//            }
-//            return new MapListWrapper<>(newMap);
-//        }
-        public <E> MapListWrapper<K, E> mapValues(Function<XMapList<V>, List<E>> func) {
-            final Map<K, List<E>> newMap = new LinkedHashMap<>();
-            for (Map.Entry<K, List<V>> entry : map.entrySet()) {
-                final K key = entry.getKey();
-                final List<V> values = entry.getValue();
-                List<E> rList = new ArrayList<>(func.apply(new XMapList<>(values)));
-                newMap.put(key, rList);
+        public Diff2<T, R> addConsumer(BiConsumer<Diff2<T, R>, List<R>> biConsumer) {
+            if (isNotEmpty(addList)) {
+                biConsumer.accept(this, addList);
             }
-            return new MapListWrapper<>(newMap);
-        }
-
-        public Map<K, List<V>> map() {
-            return map;
-        }
-
-        public List<V> getValues(K key) {
-            if (map.containsKey(key)) {
-                return map.get(key);
-            }
-            return new ArrayList<>();
-        }
-    }
-
-    // 内部类，封装流操作
-    public final static class ListWrapper<T> {
-        private final List<T> list;
-
-        public ListWrapper(List<T> list) {
-            this.list = list;
-        }
-
-        public ListWrapper<T> add(T t) {
-            list.add(t);
             return this;
         }
 
-        public ListWrapper<T> addAll(List<T> ts) {
-            list.addAll(ts);
+        public Diff2<T, R> delConsumer(BiConsumer<Diff2<T, R>, List<T>> biConsumer) {
+            if (isNotEmpty(delList)) {
+                biConsumer.accept(this, delList);
+            }
             return this;
         }
 
-        public ListWrapper<T> add(int index, T t) {
-            list.add(index, t);
+        public Diff2<T, R> existsConsumer(BiConsumer<Diff2<T, R>, List<T>> biConsumer) {
+            final List<T> existsList = getExistsList();
+            if (isNotEmpty(existsList)) {
+                biConsumer.accept(this, existsList);
+            }
             return this;
         }
 
-        @SafeVarargs
-        public final ListWrapper<T> add(T... ts) {
-            list.addAll(asList(ts));
+
+        public Diff2<T, R> updateConsumer(BiConsumer<Diff2<T, R>, Map<T, R>> biConsumer) {
+            if (updateMap != null && !updateMap.isEmpty()) {
+                biConsumer.accept(this, updateMap);
+            }
             return this;
         }
 
-        public ListWrapper<T> skip(int skipIndex) {
-            return new ListWrapper<>(list.subList(skipIndex, list.size()));
-        }
-
-        public ListWrapper<T> sub(int subLen) {
-            return new ListWrapper<>(list.subList(0, subLen));
-        }
-
-        public ListWrapper<T> sub(int subBegin, int subEnd) {
-            return new ListWrapper<>(list.subList(subBegin, subEnd + 1));
-        }
-
-        public ListWrapper<T> reversed() {
-            return new ListWrapper<>(new AbstractList<>() {
-                @Override
-                public T get(int index) {
-                    return list.get(list.size() - 1 - index);
-                }
-
-                @Override
-                public int size() {
-                    return list.size();
-                }
-            });
-        }
-
-        // 过滤方法
-        @SafeVarargs
-        public final ListWrapper<T> ands(Predicate<T>... predicates) {
-            return filters(predicates);
-        }
-
-        // 过滤方法
-        @SafeVarargs
-        public final ListWrapper<T> filters(Predicate<T>... predicates) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .filter(item -> Arrays.stream(predicates).allMatch(predicate -> predicate.test(item)))
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 过滤或的实现
-        @SafeVarargs
-        public final ListWrapper<T> filterOrs(Predicate<T>... predicates) {
-            return ors(predicates);
-        }
-
-        // 过滤或的实现
-        @SafeVarargs
-        public final ListWrapper<T> ors(Predicate<T>... predicates) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .filter(item -> Arrays.stream(predicates).anyMatch(predicate -> predicate.test(item)))
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 过滤或的实现
-        @SafeVarargs
-        public final ListWrapper<T> filterOr(Function<XItem<T>, Boolean>... predicates) {
-            return or(predicates);
-        }
-
-        // 过滤或的实现
-        @SafeVarargs
-        public final ListWrapper<T> and(Function<XItem<T>, Boolean>... predicates) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .filter(item -> Arrays.stream(predicates).allMatch(predicate -> predicate.apply(new XItem<>(item))))
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 过滤或的实现
-        @SafeVarargs
-        public final ListWrapper<T> or(Function<XItem<T>, Boolean>... predicates) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .filter(item -> Arrays.stream(predicates).anyMatch(predicate -> predicate.apply(new XItem<>(item))))
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-
-        @SafeVarargs
-        public final ListWrapper<T> peek(Consumer<T> consumer, Function<XItem<T>, Boolean>... predicates) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result.addAll(list.stream()
-                        .map(X::clone)
-                        .peek(e -> {
-                            if (Arrays.stream(predicates).allMatch(predicate -> predicate.apply(new XItem<>(e)))) {
-                                consumer.accept(e);
-                            }
-                        }).collect(Collectors.toCollection(ArrayList::new)));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 过滤或的实现
-        @SuppressWarnings("unused")
-        public boolean anyMatch(Predicate<T> predicate) {
-            return list.stream().anyMatch(predicate);
-        }
-
-        public ListWrapper<T> gt(Function<T, Integer> func, Integer num) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream().filter(t -> func.apply(t) > num).collect(Collectors.toList());
-            }
-            return new ListWrapper<>(result);
-        }
-
-        public ListWrapper<T> gt(Function<T, Long> func, Long num) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream().filter(t -> func.apply(t) > num).collect(Collectors.toList());
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 过滤或的实现
-        @SuppressWarnings("unused")
-        public boolean noneMatch(Predicate<T> predicate) {
-            return list.stream().noneMatch(predicate);
-        }
-
-        public ListWrapper<T> peek(Consumer<T> consumer) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .map(X::clone)
-                        .peek(consumer)
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        public long count() {
-            return list.size();
-        }
-
-        // 过滤非空的方法
-        @SafeVarargs
-        public final ListWrapper<T> filterNotNull(Function<T, ?>... getters) {
-            return filterNotBlank(getters);
-        }
-
-
-        // 过滤非空的方法
-        @SafeVarargs
-        public final ListWrapper<T> filterIsNull(Function<T, ?>... getters) {
-            return filterBlank(getters);
-        }
-
-        // 过滤非空的方法
-        @SafeVarargs
-        public final ListWrapper<T> isNotNull(Function<T, ?>... getters) {
-            return filterNotBlank(getters);
-        }
-
-        // 过滤非空的方法
-        @SafeVarargs
-        public final ListWrapper<T> isNull(Function<T, ?>... getters) {
-            return filterBlank(getters);
-        }
-
-        // 过滤非空的方法
-        @SafeVarargs
-        public final ListWrapper<T> isNotBlank(Function<T, ?>... getters) {
-            return filterNotBlank(getters);
-        }
-
-        // 过滤非空的方法
-        @SafeVarargs
-        public final ListWrapper<T> isBlank(Function<T, ?>... getters) {
-            return filterBlank(getters);
-        }
-
-        // 过滤非空的方法
-        @SafeVarargs
-        public final ListWrapper<T> filterNotBlank(Function<T, ?>... getters) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .filter(item -> {
-                            if (getters == null || getters.length == 0) {
-                                if (item != null) {
-                                    if (item instanceof CharSequence) {
-                                        return !item.toString().isEmpty();
-                                    }
-                                    return true;
-                                }
-                                return false;
-                            }
-                            else {
-                                return Arrays.stream(getters).allMatch(getter -> {
-                                    Object value = getter.apply(item);
-                                    if (value != null) {
-                                        if (value instanceof CharSequence) {
-                                            return !value.toString().isEmpty();
-                                        }
-                                        return true;
-                                    }
-                                    return false;
-                                });
-                            }
-                        })
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 过滤非空的方法
-        @SafeVarargs
-        public final ListWrapper<T> filterBlank(Function<T, ?>... getters) {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .filter(item -> {
-                            if (getters == null || getters.length == 0) {
-                                if (item == null) {
-                                    return true;
-                                }
-                                return (item instanceof CharSequence) && item.toString().isEmpty();
-                            }
-                            else {
-                                return Arrays.stream(getters).allMatch(getter -> {
-                                    Object value = getter.apply(item);
-                                    if (value == null) {
-                                        return true;
-                                    }
-                                    return (value instanceof CharSequence) && value.toString().isEmpty();
-                                });
-                            }
-                        })
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 映射方法
-        public <R> ListWrapper<R> map(Function<T, R> mapper) {
-            List<R> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .map(mapper)
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 转换为 List
-        public List<T> list() {
-            return new ArrayList<>(list);
-        }
-
-        // 去重方法，按指定属性去重
-        public ListWrapper<T> distinct(Function<T, ?> keyExtractor) {
-            Set<Object> seen = ConcurrentHashMap.newKeySet();
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream()
-                        .filter(t -> seen.add(keyExtractor.apply(t)))
-                        .collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 去重方法（重载）
-        public ListWrapper<T> distinct() {
-            List<T> result = new ArrayList<>();
-            if (isNotEmpty()) {
-                result = list.stream().distinct().collect(Collectors.toCollection(ArrayList::new));
-            }
-            return new ListWrapper<>(result);
-        }
-
-        // 按照指定的键进行分组
-        public <K> MapListWrapper<K, T> groupBy(Function<T, K> classifier) {
-            final Map<K, List<T>> map = list.stream().collect(Collectors.groupingBy(classifier));
-            return new MapListWrapper<>(map);
-        }
-
-
-        // 获取第一个元素
-        public T findFirst() {
-            return list.get(0);
-        }
-
-        // 转换为 Map
-        public <K> Map<K, T> toMap(Function<T, K> keyMapper) {
-            return list.stream().collect(Collectors.toMap(keyMapper, e -> e, (a, b) -> a));
-        }
-
-        // 转换为 Map
-        public <K, V> Map<K, V> toMap(Function<T, K> keyMapper, Function<T, V> valueMapper) {
-            return list.stream().collect(Collectors.toMap(keyMapper, valueMapper));
-        }
-
-        // 转换为 Map
-        @SuppressWarnings("unused")
-        public <K, V> Map<K, V> toMap(Function<T, K> keyMapper, Function<T, V> valueMapper, BinaryOperator<V> mergeExtractor) {
-            return list.stream().collect(Collectors.toMap(keyMapper, valueMapper, mergeExtractor));
-        }
-
-        // 转换为 Map
-        public <K> Map<K, T> toMap(Function<T, K> keyMapper, BinaryOperator<T> mergeExtractor) {
-            return list.stream().collect(Collectors.toMap(keyMapper, e -> e, mergeExtractor));
-        }
-
-
-        // 排序方法
-        @SuppressWarnings("unused")
-        public ListWrapper<T> sort(Comparator<T> comparator) {
-            List<T> result = list.stream()
-                    .sorted(comparator)
-                    .collect(Collectors.toCollection(ArrayList::new));
-            return new ListWrapper<>(result);
-        }
-
-        // 排序方法（带枚举）
-        public <U extends Comparable<? super U>> ListWrapper<T> sort(Function<? super T, ? extends U> keyExtractor, Sort order, Sort nullPosition) {
-            Comparator<T> comparator;
-            if (nullPosition == Sort.NullLast) {
-                comparator = Comparator.comparing(keyExtractor, Comparator.nullsLast(U::compareTo));
-            }
-            else {
-                comparator = Comparator.comparing(keyExtractor, Comparator.nullsFirst(U::compareTo));
-            }
-
-            if (order == Sort.Desc) {
-                comparator = comparator.reversed();
-            }
-
-            Comparator<T> finalComparator = comparator;
-            List<T> result = list.stream()
-                    .collect(
-                            Collectors.collectingAndThen(Collectors.toCollection(() ->
-                                    new TreeSet<>(finalComparator)
-                            ), ArrayList::new));
-
-            return new ListWrapper<>(result);
-        }
-
-        // 扁平化方法
-        @SuppressWarnings("unused")
-        public <R> List<R> flatMap(Function<T, List<R>> function) {
-            if (isEmpty()) {
-                return new ArrayList<>();
-            }
-
-            // 去掉 null 值并进行扁平化处理
-            return list.stream()
-                    .flatMap(item -> function.apply(item).stream()) // 扁平化处理
-                    .collect(Collectors.toCollection(ArrayList::new));
-        }
-
-        private boolean isEmpty() {
-            return list == null || list.isEmpty();
-        }
-
-        private boolean isNotEmpty() {
-            return !isEmpty();
-        }
-
-        public <R> double sumDouble(Function<T, R> mapper) {
-            return sumBigDecimal(mapper).doubleValue();
-        }
-
-        public <R> int sumInt(Function<T, R> mapper) {
-            return sumBigDecimal(mapper).intValue();
-        }
-
-        public <R> long sumLong(Function<T, R> mapper) {
-            return sumBigDecimal(mapper).longValue();
-        }
-
-        public <R> BigDecimal sumBigDecimal(Function<T, R> mapper) {
-            BigDecimal sum = new BigDecimal("0.0");
-            for (T t : list) {
-                R r = mapper.apply(t);
-                if (r instanceof Number) {
-                    sum = sum.add(new BigDecimal(String.valueOf(r)));
-                }
-                else {
-                    throw new IllegalArgumentException("不是数字,不能计算");
+        public Diff2<T, R> forEachUpdateMapConsumer(BiConsumer<T, R> biConsumer) {
+            if (updateMap != null && !updateMap.isEmpty()) {
+                for (Map.Entry<T, R> entry : updateMap.entrySet()) {
+                    final T oldPo = entry.getKey();
+                    final R newPo = entry.getValue();
+                    biConsumer.accept(oldPo, newPo);
                 }
             }
-            return sum;
+            return this;
         }
 
-        public Double sumDouble() {
-            return sumBigDecimal().doubleValue();
+        private <X> boolean isNotEmpty(List<X> list) {
+            return list != null && !list.isEmpty();
         }
 
-        public Integer sumInt() {
-            return sumBigDecimal().intValue();
+        public List<T> getExistsList() {
+            return getUpdateMapKeys();
         }
 
-        public Long sumLong() {
-            return sumBigDecimal().longValue();
+        public List<T> getUpdateMapKeys() {
+            return updateMap.keySet().stream().toList();
         }
 
-        public BigDecimal sumBigDecimal() {
-            BigDecimal sum = new BigDecimal("0.0");
-            for (T t : list) {
-                if (t instanceof Number) {
-                    sum = sum.add(new BigDecimal(String.valueOf(t)));
-                }
-                else {
-                    throw new IllegalArgumentException("不是数字,不能计算");
-                }
-            }
-            return sum;
+        public List<R> getUpdateMapValues() {
+            return updateMap.values().stream().toList();
         }
-
-        public <R> R reduce(Supplier<R> func, BiConsumer<R, T> consumer) {
-            R r = func.get();
-            for (T t : list) {
-                consumer.accept(r, t);
-            }
-            return r;
-        }
-
-        public <S, E, R> R reduce(Supplier<R> supplier, Function<T, E> func, BiConsumer<R, E> consumer) {
-            R r = supplier.get();
-            for (T t : list) {
-                E e = func.apply(t);
-                consumer.accept(r, e);
-            }
-            return r;
-        }
-
-        public void split(int size, Consumer<List<T>> consumer) {
-            List<List<T>> parts = new ArrayList<>();
-
-            for (int i = 0; i < list.size(); i += size) {
-                // 计算子列表的结束索引
-                int end = Math.min(i + size, list.size());
-                // 创建子列表并添加到结果列表
-                parts.add(new ArrayList<>(list.subList(i, end)));
-            }
-
-            for (List<T> part : parts) {
-                consumer.accept(part);
-            }
-        }
-
-        public ListWrapper<T> limit(int i) {
-            List<T> result = list.stream()
-                    .limit(i)
-                    .collect(Collectors.toList());
-            return new ListWrapper<>(result);
-        }
-
-        public String joining(CharSequence symbol) {
-            StringJoiner sb = new StringJoiner(symbol);
-            for (T t : list) {
-                if (t instanceof CharSequence) {
-                    sb.add((CharSequence) t);
-                }
-                else {
-                    if (t != null) {
-                        sb.add(t.toString());
-                    }
-                }
-            }
-            return sb.toString();
-        }
-
-        public ListWrapper<T> concat(List<T> inputList) {
-            final List<T> newList = new ArrayList<>(list);
-            newList.addAll(inputList);
-            return new ListWrapper<>(newList);
-        }
-    }
-
-    public static class XItem<V> {
-
-        private final V item;
-
-        public XItem(V item) {
-            this.item = item;
-        }
-
-        private boolean compare(Number value, Number num, String type) {
-            BigDecimal left = new BigDecimal(value.toString());
-            BigDecimal right = new BigDecimal(num.toString());
-            switch (type) {
-                case ">" -> {
-                    return left.compareTo(right) > 0;
-                }
-                case "<" -> {
-                    return left.compareTo(right) < 0;
-                }
-                case ">=" -> {
-                    return left.compareTo(right) >= 0;
-                }
-                case "<=" -> {
-                    return left.compareTo(right) <= 0;
-                }
-                case "==" -> {
-                    return left.compareTo(right) == 0;
-                }
-            }
-            return false;
-        }
-
-        public boolean gt(Function<V, Number> func, Number num) {
-            return compare(func.apply(item), num, ">");
-        }
-
-        public boolean ge(Function<V, Number> func, Number num) {
-            return compare(func.apply(item), num, ">=");
-        }
-
-        public boolean lt(Function<V, Number> func, Number num) {
-            return compare(func.apply(item), num, "<");
-        }
-
-        public boolean le(Function<V, Number> func, Number num) {
-            return compare(func.apply(item), num, "<=");
-        }
-
-//        public <R> XItem<R> map(Function<V, R> func) {
-//            return new XItem<>(func.apply(item));
-//        }
-
-        public final <R> boolean isNotNull(Function<V, R> func) {
-            final R r = func.apply(item);
-            return null != r;
-        }
-
-
-    }
-
-    public static class XMapList<V> {
-
-        private final List<V> list;
-
-        public XMapList(List<V> values) {
-            this.list = values;
-        }
-
-        public <R> List<R> map(Function<V, R> func) {
-            return list.stream()
-                    .map(func)
-                    .collect(Collectors.toCollection(ArrayList::new));
-        }
-
     }
 
     public static abstract class Try<T> {
@@ -981,18 +1202,7 @@ public final class X {
 
         public abstract String stringPrefix();
 
-
-        public final Try<T> andThen(Consumer<? super T> consumer) {
-            Objects.requireNonNull(consumer, "consumer is null");
-            return andThenTry(consumer::accept);
-        }
-
-        public final Try<T> andThen(Runnable runnable) {
-            Objects.requireNonNull(runnable, "runnable is null");
-            return andThenTry(runnable::run);
-        }
-
-        public final Try<T> andThenTry(CheckedRunnable runnable) {
+        public final Try<T> andThen(CheckedRunnable runnable) {
             Objects.requireNonNull(runnable, "runnable is null");
             if (isFailure()) {
                 return this;
@@ -1002,12 +1212,12 @@ public final class X {
                     runnable.run();
                     return this;
                 } catch (Throwable t) {
-                    return new Failure<>(t);
+                    return new Try.Failure<>(t);
                 }
             }
         }
 
-        public final Try<T> andThenTry(CheckedConsumer<? super T> consumer) {
+        public final Try<T> andThen(CheckedConsumer<? super T> consumer) {
             Objects.requireNonNull(consumer, "consumer is null");
             if (isFailure()) {
                 return this;
@@ -1017,7 +1227,7 @@ public final class X {
                     consumer.accept(get());
                     return this;
                 } catch (Throwable t) {
-                    return new Failure<>(t);
+                    return new Try.Failure<>(t);
                 }
             }
         }
@@ -1037,14 +1247,14 @@ public final class X {
             return this;
         }
 
-//        public final <E extends Throwable> Try<T> onFailure(Function<? super Throwable, E> action) {
-//            Objects.requireNonNull(action, "action is null");
-//            if (isFailure()) {
-//                final E apply = action.apply(getCause());
-//                throw new RuntimeException(apply);
-//            }
-//            return this;
-//        }
+        public final <E extends Throwable> Try<T> onFailure(Function<? super Throwable, E> action) {
+            Objects.requireNonNull(action, "action is null");
+            if (isFailure()) {
+                final E apply = action.apply(getCause());
+                throw new RuntimeException(apply);
+            }
+            return this;
+        }
 
         @SuppressWarnings("unchecked")
         public final <X extends Throwable> Try<T> onFailure(Class<X> exceptionType, Consumer<? super X> action) {
@@ -1056,18 +1266,14 @@ public final class X {
             return this;
         }
 
-        public final Try<T> andFinally(Runnable runnable) {
-            Objects.requireNonNull(runnable, "runnable is null");
-            return andFinallyTry(runnable::run);
-        }
 
-        public final Try<T> andFinallyTry(CheckedRunnable runnable) {
+        public final Try<T> andFinally(CheckedRunnable runnable) {
             Objects.requireNonNull(runnable, "runnable is null");
             try {
                 runnable.run();
                 return this;
             } catch (Throwable t) {
-                return new Failure<>(t);
+                return new Try.Failure<>(t);
             }
         }
 
@@ -1094,7 +1300,8 @@ public final class X {
 
             @Override
             public Throwable getCause() {
-                throw new UnsupportedOperationException("getCause on Success");
+//                throw new UnsupportedOperationException("getCause on Success");
+                return null;
             }
 
             @Override
@@ -1210,102 +1417,6 @@ public final class X {
 
     }
 
-    // 排序顺序枚举
-    public enum Sort {
-        Asc, Desc,
-        NullFirst, NullLast
-    }
-
-    @Data
-    @Accessors(chain = true)
-    public static class Diff<T> {
-        private List<T> addList;
-        private List<T> delList;
-        private Map<T, T> updateMap;
-
-        public Diff<T> addList(Consumer<List<T>> consumer) {
-            consumer.accept(addList);
-            return this;
-        }
-
-        public Diff<T> delList(Consumer<List<T>> consumer) {
-            consumer.accept(delList);
-            return this;
-        }
-
-
-        public Diff<T> updateList(BiConsumer<Diff<T>, Map<T, T>> biConsumer) {
-            if (updateMap != null && !updateMap.isEmpty()) {
-                biConsumer.accept(this, updateMap);
-            }
-            return this;
-        }
-
-        public Diff<T> forEachUpdateMapConsumer(BiConsumer<T, T> biConsumer) {
-            if (updateMap != null && !updateMap.isEmpty()) {
-                for (Map.Entry<T, T> entry : updateMap.entrySet()) {
-                    final T oldPo = entry.getKey();
-                    final T newPo = entry.getValue();
-                    biConsumer.accept(oldPo, newPo);
-                }
-            }
-            return this;
-        }
-
-        public List<T> getUpdateMapKeys() {
-            return updateMap.keySet().stream().toList();
-        }
-
-        public List<T> getUpdateMapValues() {
-            return updateMap.values().stream().toList();
-        }
-    }
-
-    @Data
-    @Accessors(chain = true)
-    public static class Diff2<T, R> {
-        private List<R> addList;
-        private List<T> delList;
-        private Map<T, R> updateMap;
-
-        public Diff2<T, R> addList(Consumer<List<R>> consumer) {
-            consumer.accept(addList);
-            return this;
-        }
-
-
-        public Diff2<T, R> delList(Consumer<List<T>> consumer) {
-            consumer.accept(delList);
-            return this;
-        }
-
-        public Diff2<T, R> updateList(BiConsumer<Diff2<T, R>, Map<T, R>> biConsumer) {
-            if (updateMap != null && !updateMap.isEmpty()) {
-                biConsumer.accept(this, updateMap);
-            }
-            return this;
-        }
-
-        public Diff2<T, R> forEachUpdateMapConsumer(BiConsumer<T, R> biConsumer) {
-            if (updateMap != null && !updateMap.isEmpty()) {
-                for (Map.Entry<T, R> entry : updateMap.entrySet()) {
-                    final T oldPo = entry.getKey();
-                    final R newPo = entry.getValue();
-                    biConsumer.accept(oldPo, newPo);
-                }
-            }
-            return this;
-        }
-
-        public List<T> getUpdateMapKeys() {
-            return updateMap.keySet().stream().toList();
-        }
-
-        public List<R> getUpdateMapValues() {
-            return updateMap.values().stream().toList();
-        }
-    }
-
     @FunctionalInterface
     public interface CheckedFunction0<R> {
         R apply() throws Throwable;
@@ -1337,23 +1448,75 @@ public final class X {
         }
 
     }
+}
 
-    public static <T> T clone(T obj) {
-        if (!(obj instanceof Serializable)) {
-            throw new RuntimeException("对象没有实现 Serializable 接口");
+/**
+ * 用于实现扁平化迭代的内部类
+ */
+class FlatteningIterable<T, R> implements Iterable<R> {
+    private final Iterable<? extends T> source;
+    private final Function<? super T, ? extends Iterable<? extends R>> mapper;
+
+    FlatteningIterable(Iterable<? extends T> source,
+                       Function<? super T, ? extends Iterable<? extends R>> mapper) {
+        this.source = source;
+        this.mapper = mapper;
+    }
+
+    @Override
+    public Iterator<R> iterator() {
+        return new FlatteningIterator<>(source.iterator(), mapper);
+    }
+}
+
+/**
+ * 用于实现扁平化迭代的迭代器
+ */
+class FlatteningIterator<T, R> implements Iterator<R> {
+    private final Iterator<? extends T> sourceIterator;
+    private final Function<? super T, ? extends Iterable<? extends R>> mapper;
+    private Iterator<? extends R> currentIterator;
+    private boolean hasNextComputed;
+    private boolean hasNextResult;
+
+    FlatteningIterator(Iterator<? extends T> sourceIterator,
+                       Function<? super T, ? extends Iterable<? extends R>> mapper) {
+        this.sourceIterator = sourceIterator;
+        this.mapper = mapper;
+        this.currentIterator = Collections.emptyIterator();
+    }
+
+    @Override
+    public boolean hasNext() {
+        if (!hasNextComputed) {
+            computeNext();
         }
-        try {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(bos);
-            oos.writeObject(obj);
-            oos.close();
-            ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
-            ObjectInputStream ois = new ObjectInputStream(bis);
-            Object newObj = ois.readObject();
-            ois.close();
-            return (T) newObj;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        return hasNextResult;
+    }
+
+    @Override
+    public R next() {
+        if (!hasNextComputed) {
+            computeNext();
         }
+        if (!hasNextResult) {
+            throw new NoSuchElementException();
+        }
+        hasNextComputed = false;
+        return currentIterator.next();
+    }
+
+    private void computeNext() {
+        while (!currentIterator.hasNext() && sourceIterator.hasNext()) {
+            T nextElement = sourceIterator.next();
+            if (nextElement != null) {
+                Iterable<? extends R> nextIterable = mapper.apply(nextElement);
+                if (nextIterable != null) {
+                    currentIterator = nextIterable.iterator();
+                }
+            }
+        }
+        hasNextResult = currentIterator.hasNext();
+        hasNextComputed = true;
     }
 }

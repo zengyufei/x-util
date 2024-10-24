@@ -15,7 +15,7 @@ public class SumTest {
                 .map(User::getAge)
                 .mapToInt(value -> Integer.parseInt(value.toString()))
                 .sum();
-        int my = X.l(Data.用户集合)
+        int my = X.list(Data.用户集合)
                 .filterNotNull(User::getAge)
                 .map(User::getAge)
                 .sumInt();
@@ -30,7 +30,7 @@ public class SumTest {
                 .map(User::getAge)
                 .mapToInt(value -> Integer.parseInt(value.toString()))
                 .sum();
-        int my = X.l(Data.用户集合)
+        int my = X.list(Data.用户集合)
                 .filterNotNull(User::getAge)
                 .sumInt(User::getAge);
         assert my == jdk;
@@ -40,7 +40,7 @@ public class SumTest {
     @Order(3)
     public void error年龄和int() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            X.l(Data.用户集合)
+            X.list(Data.用户集合)
                     .filterNotNull(User::getAge)
                     .sumInt(User::getName);
         });
@@ -54,7 +54,7 @@ public class SumTest {
                 .map(User::getAge)
                 .mapToDouble(value -> Double.parseDouble(value.toString()))
                 .sum();
-        Double my = X.l(Data.用户集合)
+        Double my = X.list(Data.用户集合)
                 .filterNotNull(User::getAge)
                 .map(User::getAge)
                 .sumDouble();
@@ -69,7 +69,7 @@ public class SumTest {
                 .map(User::getAge)
                 .mapToDouble(value -> Double.parseDouble(value.toString()))
                 .sum();
-        Double my = X.l(Data.用户集合)
+        Double my = X.list(Data.用户集合)
                 .filterNotNull(User::getAge)
                 .sumDouble(User::getAge);
         assert my == jdk;
@@ -79,7 +79,7 @@ public class SumTest {
     @Order(6)
     public void error年龄和double() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            X.l(Data.用户集合)
+            X.list(Data.用户集合)
                     .filterNotNull(User::getAge)
                     .sumDouble(User::getName);
         });
@@ -94,7 +94,7 @@ public class SumTest {
                 .map(User::getAge)
                 .mapToLong(value -> Long.parseLong(value.toString()))
                 .sum();
-        long my = X.l(Data.用户集合)
+        long my = X.list(Data.用户集合)
                 .filterNotNull(User::getAge)
                 .map(User::getAge)
                 .sumLong();
@@ -109,7 +109,7 @@ public class SumTest {
                 .map(User::getAge)
                 .mapToLong(value -> Long.parseLong(value.toString()))
                 .sum();
-        long my = X.l(Data.用户集合)
+        long my = X.list(Data.用户集合)
                 .filterNotNull(User::getAge)
                 .sumLong(User::getAge);
         assert my == jdk;
@@ -119,7 +119,7 @@ public class SumTest {
     @Order(9)
     public void error年龄和long() {
         Assertions.assertThrows(IllegalArgumentException.class, () -> {
-            X.l(Data.用户集合)
+            X.list(Data.用户集合)
                     .filterNotNull(User::getAge)
                     .sumLong(User::getName);
         });

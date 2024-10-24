@@ -1,5 +1,6 @@
 package children;
 
+
 import com.zyf.util.X;
 import org.junit.jupiter.api.*;
 
@@ -17,13 +18,14 @@ public class newArrayListTest {
         Assertions.assertEquals(jdk, my);
     }
 
+
     @Test
-    @Order(2)
-    public void list创建v2() {
-        final List<Integer> jdk = Arrays.asList(1, 2, 3, 4);
-        final List<Integer> my = X.warpperList(2, 3, 4, 5)
-                .map(e -> e - 1)
-                .list();
+    @Order(1)
+    public void list创建2() {
+        final List<Integer> jdk = Arrays.asList(2, 3, 4, 5);
+        final List<Integer> my = X.list(1, 2, 3, 4)
+                .map(e -> e + 1)
+                .toList();
         Assertions.assertEquals(jdk, my);
     }
 

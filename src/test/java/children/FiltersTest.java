@@ -6,6 +6,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class FiltersTest {
 
@@ -15,7 +16,7 @@ public class FiltersTest {
         long jdk = Data.用户集合.stream()
                 .filter(e -> e.getAge() != null)
                 .count();
-        long my = X.l(Data.用户集合)
+        long my = X.list(Data.用户集合)
                 .filters(e -> e.getAge() != null)
                 .count();
         assert my == jdk;
@@ -27,7 +28,7 @@ public class FiltersTest {
         long jdk = Data.用户集合.stream()
                 .filter(e -> e.getAge() != null)
                 .count();
-        long my = X.l(Data.用户集合)
+        long my = X.list(Data.用户集合)
                 .filterNotNull(User::getAge)
                 .count();
         assert my == jdk;
@@ -39,7 +40,7 @@ public class FiltersTest {
         long jdk = Data.用户集合.stream()
                 .filter(e -> e.getAge() != null)
                 .count();
-        long my = X.l(Data.用户集合)
+        long my = X.list(Data.用户集合)
                 .isNotNull(User::getAge)
                 .count();
         assert my == jdk;
@@ -52,7 +53,7 @@ public class FiltersTest {
                 .filter(e -> e.getAge() != null)
                 .filter(e -> e.getAge() > 17)
                 .count();
-        long my = X.l(Data.用户集合)
+        long my = X.list(Data.用户集合)
                 .filters(e -> e.getAge() != null,
                         e -> e.getAge() > 17)
                 .count();
@@ -66,7 +67,7 @@ public class FiltersTest {
                 .filter(e -> e.getAge() != null)
                 .filter(e -> e.getAge() > 17)
                 .count();
-        long my = X.l(Data.用户集合)
+        long my = X.list(Data.用户集合)
                 .filterNotNull(User::getAge)
                 .filters(e -> e.getAge() > 17)
                 .count();
@@ -80,7 +81,7 @@ public class FiltersTest {
                 .filter(e -> e.getAge() != null)
                 .filter(e -> e.getAge() > 17)
                 .count();
-        long my = X.l(Data.用户集合)
+        long my = X.list(Data.用户集合)
                 .isNotNull(User::getAge)
                 .filters(e -> e.getAge() > 17)
                 .count();
@@ -94,7 +95,7 @@ public class FiltersTest {
                 .filter(e -> e.getAge() != null)
                 .filter(e -> e.getAge() > 17)
                 .count();
-        long my = X.l(Data.用户集合)
+        long my = X.list(Data.用户集合)
                 .ands(e -> e.getAge() != null,
                         e -> e.getAge() > 17)
                 .count();

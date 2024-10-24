@@ -21,7 +21,7 @@ public class ReduceTest {
                     list.add(a);
                     return list;
                 }, (o, o2) -> o);
-        List<Integer> my = X.l(Data.用户集合)
+        List<Integer> my = X.list(Data.用户集合)
                 .isNotNull(User::getAge)
                 .map(User::getAge)
                 .reduce(ArrayList::new, ArrayList::add);
@@ -38,7 +38,7 @@ public class ReduceTest {
                     list.add(a);
                     return list;
                 }, (o, o2) -> o);
-        List<Integer> my = X.l(Data.用户集合)
+        List<Integer> my = X.list(Data.用户集合)
                 .isNotNull(User::getAge)
                 .reduce(ArrayList::new, User::getAge, ArrayList::add);
         for (Integer integer : my) {

@@ -10,16 +10,16 @@ import java.util.Map;
 public class Data {
 
     public static final Map<String, List<Role>> grouptByMap = X
-            .wapperMap("1", X.asList(new Role("rootAdmin", 1), new Role("user", 2)))
+            .map("1", X.asList(new Role("rootAdmin", 1), new Role("user", 2)))
             .put("2", X.asList(new Role("rootUser", 3), new Role("admin", null)))
             .put("3", X.asList(new Role("admin", null), new Role("admin", 3)))
             .map();
     public static final List<String> map = X
-            .warpperList("rootAdmin")
+            .list("rootAdmin")
             .add("user")
             .add("rootUser")
             .add("admin")
-            .list();
+            .toList();
     // 测试数据
     public static List<User> 用户集合 = X.asList(
             new User("Alice", 20),

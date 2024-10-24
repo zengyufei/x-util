@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -17,46 +18,93 @@ public class DiffTest {
     @Test
     @Order(1)
     public void diff同类型对比() {
-        final List<User> newList = X.l(Data.用户集合)
-                .peek(e -> e.setName(e.getName() + "123"),
-                        e -> e.isNotNull(User::getAge),
-                        e -> e.gt(User::getAge, 17))
-                .list();
+        final List<User> oldList = X.list(
+                        new User("Alice", 20),  // 有变动
+                        new User("Bob", 17),
+                        new User("Yama", 17),
+                        new User("Charlie", 19), // 有变动
+                        new User("David", null),
+                        new User("Eve", 5)
+                )
+                .toList();
 
-        X.diff(Data.用户集合, newList, (oldUser, newUser) -> oldUser.getName().equals(newUser.getName()))
-                .addList(l -> {
+        final List<User> newList = X.list(
+                        new User("Alice123", 20), // 有变动
+                        new User("Bob", 22),
+                        new User("Yama", 33),
+                        new User("Charlie123", 19), // 有变动
+                        new User("David", 55),
+                        new User("Eve", 44)
+                )
+                .toList();
+
+        X.getDiff(oldList, newList, (oldUser, newUser) -> oldUser.getName().equals(newUser.getName()))
+                .addConsumer((t, l) -> {
                     assert l.size() == 2;
+                    List<String> addNames = Arrays.asList("Alice123", "Charlie123");
+                    assert l.stream().allMatch(user -> addNames.contains(user.getName()));
                 })
-                .updateList((l, map) -> {
+                .updateConsumer((l, map) -> {
+                    assert map.size() == 4;
+                    List<String> oldUpdateNames = Arrays.asList("Bob", "Yama", "David", "Eve");
                     for (Map.Entry<User, User> entry : map.entrySet()) {
                         final User left = entry.getKey();
                         final User right = entry.getValue();
-                        System.out.println(left.getName() + "->" + right.getName());
+                        System.out.println(left + "->" + right);
+                        assert oldUpdateNames.contains(left.getName());
                     }
                 })
-                .delList(l -> {
+                .delConsumer((t, l) -> {
                     assert l.size() == 2;
+                    List<String> delNames = Arrays.asList("Alice", "Charlie");
+                    assert l.stream().allMatch(user -> delNames.contains(user.getName()));
                 });
     }
 
     @Test
     @Order(2)
     public void diff不同类型对比() {
-        X.diff2(Data.roleList, Data.用户集合,
+        final String someName = "张三";
+        final List<User> userList = X.list(
+                        new User(someName, 20), // 名字相同
+                        new User("Bob", 17),
+                        new User("Yama", 17),
+                        new User("Charlie", 19),
+                        new User("David", null),
+                        new User("Eve", 5)
+                )
+                .toList();
+
+        final List<Role> roleList = X.asList(
+                new Role(someName, 1), // 名字相同
+                new Role("user", 2),
+                new Role("rootUser", 3),
+                new Role("admin", null),
+                new Role("admin", 3)
+        );
+
+        X.getDiff2(roleList, userList,
                         (role, user) -> role.getRoleName().equals(user.getName())
                 )
-                .addList(l -> {
-                    assert l.size() == 6;
+                .addConsumer((t, l) -> {
+                    assert l.size() == 5;
+                    List<String> addNames = Arrays.asList("Bob", "Yama", "Charlie", "David", "Eve");
+                    assert l.stream().allMatch(user -> addNames.contains(user.getName()));
                 })
-                .updateList((l, map) -> {
+                .updateConsumer((l, map) -> {
+                    assert map.size() == 1;
                     for (Map.Entry<Role, User> entry : map.entrySet()) {
                         final Role left = entry.getKey();
                         final User right = entry.getValue();
-                        System.out.println(left.getRoleName() + "->" + right.getName());
+                        System.out.println(left + "->" + right);
+                        assert someName.equals(left.getRoleName());
+                        assert someName.equals(right.getName());
                     }
                 })
-                .delList(l -> {
-                    assert l.size() == 5;
+                .delConsumer((t, l) -> {
+                    assert l.size() == 4;
+                    List<String> delNames = Arrays.asList("user", "rootUser", "admin");
+                    assert l.stream().allMatch(role -> delNames.contains(role.getRoleName()));
                 });
 
     }

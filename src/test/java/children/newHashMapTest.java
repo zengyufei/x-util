@@ -1,5 +1,6 @@
 package children;
 
+
 import com.zyf.util.X;
 import org.junit.jupiter.api.*;
 
@@ -27,7 +28,7 @@ public class newHashMapTest {
             put(1, "2");
             put(2, "3");
         }};
-        final Map<Integer, String> my = X.wapperMap(1, "2")
+        final Map<Integer, String> my = X.map(1, "2")
                 .put(2, "3")
                 .map();
         Assertions.assertEquals(jdk, my);
