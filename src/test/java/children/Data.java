@@ -22,12 +22,12 @@ public class Data {
             .toList();
     // 测试数据
     public static List<User> 用户集合 = X.asList(
-            new User("Alice", 20),
-            new User("Bob", 17),
-            new User("Yama", 17),
-            new User("Charlie", 19),
-            new User("David", null),
-            new User("Eve", 5)
+            new User("Alice", 20, 168),
+            new User("Bob", 17, 178),
+            new User("Yama", 17, 201),
+            new User("Charlie", 19, 155),
+            new User("David", null, 158),
+            new User("Eve", 5, 158)
     );
     public static List<Role> roleList = X.asList(
             new Role("rootAdmin", 1),

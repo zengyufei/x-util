@@ -19,22 +19,22 @@ public class DiffTest {
     @Order(1)
     public void diff同类型对比() {
         final List<User> oldList = X.list(
-                        new User("Alice", 20),  // 有变动
-                        new User("Bob", 17),
-                        new User("Yama", 17),
-                        new User("Charlie", 19), // 有变动
-                        new User("David", null),
-                        new User("Eve", 5)
+                        new User("Alice", 20, 168),  // 有变动
+                        new User("Bob", 17, 178),
+                        new User("Yama", 17, 201),
+                        new User("Charlie", 19, 155), // 有变动
+                        new User("David", null, 158),
+                        new User("Eve", 5, 158)
                 )
                 .toList();
 
         final List<User> newList = X.list(
-                        new User("Alice123", 20), // 有变动
-                        new User("Bob", 22),
-                        new User("Yama", 33),
-                        new User("Charlie123", 19), // 有变动
-                        new User("David", 55),
-                        new User("Eve", 44)
+                        new User("Alice123", 20, 168),  // 有变动
+                        new User("Bob", 17, 178),
+                        new User("Yama", 17, 201),
+                        new User("Charlie123", 19, 155), // 有变动
+                        new User("David", null, 158),
+                        new User("Eve", 5, 158)
                 )
                 .toList();
 
@@ -66,12 +66,12 @@ public class DiffTest {
     public void diff不同类型对比() {
         final String someName = "张三";
         final List<User> userList = X.list(
-                        new User(someName, 20), // 名字相同
-                        new User("Bob", 17),
-                        new User("Yama", 17),
-                        new User("Charlie", 19),
-                        new User("David", null),
-                        new User("Eve", 5)
+                        new User(someName, 20, 168),  // 名字相同
+                        new User("Bob", 17, 178),
+                        new User("Yama", 17, 201),
+                        new User("Charlie", 19, 155),
+                        new User("David", null, 158),
+                        new User("Eve", 5, 158)
                 )
                 .toList();
 

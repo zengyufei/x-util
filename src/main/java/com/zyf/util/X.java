@@ -8,10 +8,19 @@ import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
 import java.util.stream.Collectors;
 
 public class X {
+
+    @SafeVarargs
+    public static <T> List<T> asList(T... elements) {
+        if (elements == null || elements.length == 0) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(Arrays.asList(elements));
+    }
 
     //    public static <K, V> void hasKey(Map<K, V> map, K key, Consumer<V> has, Runnable noHas) {
 //        if (map.containsKey(key)) {
@@ -29,10 +38,10 @@ public class X {
         return map;
     }
 
-    @SafeVarargs
-    public static <T> List<T> asList(T... elements) {
-        Objects.requireNonNull(elements, "elements is null");
-        return new ArrayList<>(Arrays.asList(elements));
+    // 排序顺序枚举
+    public enum Sort {
+        Asc, Desc,
+        NullFirst, NullLast
     }
 
     public static <K, V> MapStream<K, V> map(K k, V v) {
@@ -194,82 +203,92 @@ public class X {
         public ListStream<T> add(T t) {
             final List<T> list = toList();
             list.add(t);
-            return new ListStream<>(list);
+            return this;
         }
 
 
         public ListStream<T> add(int index, T t) {
             final List<T> list = toList();
             list.add(index, t);
-            return new ListStream<>(list);
+            return this;
         }
 
 
         public ListStream<T> addAll(List<T> ts) {
             final List<T> list = toList();
             list.addAll(ts);
-            return new ListStream<>(list);
+            return this;
         }
 
+        public ListStream<T> concat(List<T> ts) {
+            final List<T> list = toList();
+            list.addAll(ts);
+            return new ListStream<>(list);
+        }
 
         @SafeVarargs
         public final ListStream<T> add(T... ts) {
             final List<T> list = toList();
             list.addAll(asList(ts));
-            return new ListStream<>(list);
+            return this;
         }
-//        public ListWrapper<T> skip(int skipIndex) {
-//            return new ListWrapper<>(list.subList(skipIndex, list.size()));
-//        }
-//
-//        public ListWrapper<T> sub(int subLen) {
-//            return new ListWrapper<>(list.subList(0, subLen));
-//        }
-//
-//        public ListWrapper<T> sub(int subBegin, int subEnd) {
-//            return new ListWrapper<>(list.subList(subBegin, subEnd + 1));
-//        }
-//
-//        public ListWrapper<T> reversed() {
-//            return new ListWrapper<>(new AbstractList<>() {
-//                @Override
-//                public T get(int index) {
-//                    return list.get(list.size() - 1 - index);
-//                }
-//
-//                @Override
-//                public int size() {
-//                    return list.size();
-//                }
-//            });
-//        }
+
+        public ListStream<T> skip(int skipIndex) {
+            AtomicInteger i = new AtomicInteger(1);
+            return new ListStream<>(createFilteredIterable(elem -> i.getAndIncrement() > skipIndex));
+        }
 
         //
-//        // 过滤或的实现
-//        @SuppressWarnings("unused")
-//        public boolean anyMatch(Predicate<T> predicate) {
-//            return list.stream().anyMatch(predicate);
+//        public ListStream<T> sub(int subLen) {
+//            return new ListStream<>(list.subList(0, subLen));
 //        }
 //
-//        // 过滤或的实现
-//        @SuppressWarnings("unused")
-//        public boolean noneMatch(Predicate<T> predicate) {
-//            return list.stream().noneMatch(predicate);
+//        public ListStream<T> sub(int subBegin, int subEnd) {
+//            return new ListStream<>(list.subList(subBegin, subEnd + 1));
 //        }
 //
-//        // 获取第一个元素
-//        public T findFirst() {
-//            return list.get(0);
-//        }
-//
-//
-//        public ListWrapper<T> limit(int i) {
+        public ListStream<T> reversed() {
+            // 反转列表
+            List<T> list = toList();
+            Collections.reverse(list);
+            return new ListStream<>(list);
+        }
+
+        // 过滤或的实现
+        @SafeVarargs
+        @SuppressWarnings("unused")
+        public final boolean anyMatch(Predicate<T>... predicates) {
+            Iterable<T> filteredIterable = createFilteredIterable(elem ->
+                    Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem)));
+            return new ListStream<>(filteredIterable).isNotEmpty();
+        }
+
+        // 过滤或的实现
+        @SafeVarargs
+        @SuppressWarnings("unused")
+        public final boolean noneMatch(Predicate<T>... predicates) {
+            Iterable<T> filteredIterable = createFilteredIterable(elem ->
+                    Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem)));
+            return new ListStream<>(filteredIterable).isEmpty();
+        }
+
+        // 获取第一个元素
+        public T findFirst() {
+            Iterator<T> iterator = source.iterator();
+            if (iterator.hasNext()) {
+                return iterator.next();
+            }
+            return null;
+        }
+
+//        public ListStream<T> limit(int i) {
 //            List<T> result = list.stream()
 //                    .limit(i)
 //                    .collect(Collectors.toList());
-//            return new ListWrapper<>(result);
+//            return new ListStream<>(result);
 //        }
-//
+
+
 //        public String joining(CharSequence symbol) {
 //            StringJoiner sb = new StringJoiner(symbol);
 //            for (T t : list) {
@@ -284,12 +303,8 @@ public class X {
 //            }
 //            return sb.toString();
 //        }
-//
-//        public ListWrapper<T> concat(List<T> inputList) {
-//            final List<T> newList = new ArrayList<>(list);
-//            newList.addAll(inputList);
-//            return new ListWrapper<>(newList);
-//        }
+
+
         // 过滤或的实现
         @SafeVarargs
         public final ListStream<T> filterOrs(Predicate<T>... predicates) {
@@ -315,8 +330,13 @@ public class X {
         @SafeVarargs
         public final ListStream<T> filters(Predicate<? super T>... predicates) {
             Objects.requireNonNull(predicates);
-            return new ListStream<>(createFilteredIterable(elem ->
+            return of(createFilteredIterable(elem ->
                     Arrays.stream(predicates).allMatch(predicate -> predicate.test(elem))));
+        }
+
+        @SafeVarargs
+        public final ListStream<T> filterNull(Function<T, ?>... functions) {
+            return filterBlank(functions);
         }
 
         @SafeVarargs
@@ -334,7 +354,6 @@ public class X {
             return filterNotBlank(getters);
         }
 
-
         @SafeVarargs
         public final ListStream<T> isBlank(Function<T, ?>... getters) {
             return filterBlank(getters);
@@ -347,22 +366,12 @@ public class X {
 
         @SafeVarargs
         public final ListStream<T> filterNotBlank(Function<T, ?>... functions) {
-            return new ListStream<>(createFilteredIterable(elem -> isNotBlankElement(elem, functions)));
+            return of(createFilteredIterable(elem -> isNotBlankElement(elem, functions)));
         }
 
         @SafeVarargs
         public final ListStream<T> filterBlank(Function<T, ?>... functions) {
-            return new ListStream<>(createFilteredIterable(elem -> isBlankElement(elem, functions)));
-        }
-
-        @SafeVarargs
-        public final ListStream<T> filterIsNotBlank(Function<T, ?>... functions) {
-            return new ListStream<>(createFilteredIterable(elem -> isNotBlankElement(elem, functions)));
-        }
-
-        @SafeVarargs
-        public final ListStream<T> filterIsBlank(Function<T, ?>... functions) {
-            return new ListStream<>(createFilteredIterable(elem -> isBlankElement(elem, functions)));
+            return of(createFilteredIterable(elem -> isBlankElement(elem, functions)));
         }
 
         private boolean isBlankElement(T elem, Function<T, ?>[] functions) {
@@ -568,7 +577,7 @@ public class X {
 
         public <R> ListStream<R> map(Function<? super T, ? extends R> mapper) {
             Objects.requireNonNull(mapper);
-            return new ListStream<>(() -> new Iterator<>() {
+            return of(() -> new Iterator<>() {
                 final Iterator<T> iterator = source.iterator();
 
                 public boolean hasNext() {
@@ -599,8 +608,7 @@ public class X {
                 R r = mapper.apply(t);
                 if (r instanceof Number) {
                     sum = sum.add(new BigDecimal(String.valueOf(r)));
-                }
-                else {
+                } else {
                     throw new IllegalArgumentException("不是数字,不能计算");
                 }
             }
@@ -624,8 +632,7 @@ public class X {
             for (T t : source) {
                 if (t instanceof Number) {
                     sum = sum.add(new BigDecimal(String.valueOf(t)));
-                }
-                else {
+                } else {
                     throw new IllegalArgumentException("不是数字,不能计算");
                 }
             }
@@ -639,7 +646,20 @@ public class X {
             List<T> sortedList = toList();
             // 执行排序
             sortedList.sort(comparator);
-            return new ListStream<>(sortedList);
+            return of(sortedList);
+        }
+
+        /**
+         * 根据提取的比较键对元素进行排序
+         *
+         * @param keyExtractor 键提取函数
+         * @param order        排序顺序（升序/降序）
+         * @return 排序后的ListStream
+         */
+        public <U extends Comparable<? super U>> ListStream<T> sort(
+                Function<? super T, ? extends U> keyExtractor,
+                Sort order) {
+            return sort(keyExtractor, order, Sort.NullLast);
         }
 
         /**
@@ -662,67 +682,50 @@ public class X {
                 return this;
             }
 
-            // 验证排序参数
-            validateSortParameters(order, nullPosition);
+            SortStream<T> sortStream = new SortStream<>();
 
             // 转换为List以进行排序
             List<T> sortedList = toList();
 
             // 创建比较器
-            Comparator<T> comparator = createComparator(keyExtractor, order, nullPosition);
+            Comparator<T> comparator = sortStream.createComparator(keyExtractor, order, nullPosition);
 
             // 执行排序
             sortedList.sort(comparator);
 
-            return new ListStream<>(sortedList);
+            return of(sortedList);
         }
 
         /**
-         * 创建排序用的比较器
+         * 根据提取的比较键对元素进行排序
+         *
+         * @return 排序后的ListStream
          */
-        private <U extends Comparable<? super U>> Comparator<T> createComparator(
-                Function<? super T, ? extends U> keyExtractor,
-                Sort order,
-                Sort nullPosition) {
+        @SafeVarargs
+        public final <U extends Comparable<? super U>> ListStream<T> sort(Function<SortStream<T>, Comparator<T>>... streamOperation) {
 
-            // 基础比较器
-            Comparator<T> baseComparator = (o1, o2) -> {
-                U key1 = keyExtractor.apply(o1);
-                U key2 = keyExtractor.apply(o2);
-
-                // 处理空值情况
-                if (key1 == null && key2 == null) {
-                    return 0;
-                }
-                if (key1 == null) {
-                    return nullPosition == Sort.NullFirst ? -1 : 1;
-                }
-                if (key2 == null) {
-                    return nullPosition == Sort.NullFirst ? 1 : -1;
-                }
-
-                // 正常比较
-                int comparison = key1.compareTo(key2);
-                return order == Sort.Asc ? comparison : -comparison;
-            };
-
-            return baseComparator;
-        }
-
-        /**
-         * 验证排序参数
-         */
-        private void validateSortParameters(Sort order, Sort nullPosition) {
-            // 验证order参数
-            if (order != Sort.Asc && order != Sort.Desc) {
-                throw new IllegalArgumentException("order must be either Asc or Desc");
+            if (isEmpty()) {
+                return this;
             }
 
-            // 验证nullPosition参数
-            if (nullPosition != Sort.NullFirst && nullPosition != Sort.NullLast) {
-                throw new IllegalArgumentException("nullPosition must be either NullFirst or NullLast");
+            // 转换为List以进行排序
+            List<T> sortedList = toList();
+
+            Comparator<T> comparator = null;
+            for (Function<SortStream<T>, Comparator<T>> comparatorFunction : streamOperation) {
+                if (comparator == null) {
+                    comparator = comparatorFunction.apply(new SortStream<>());
+                } else {
+                    comparator = comparator.thenComparing(comparatorFunction.apply(new SortStream<>()));
+                }
             }
+
+            // 执行排序
+            sortedList.sort(comparator);
+
+            return of(sortedList);
         }
+
 
         /**
          * 简化版排序方法 - 升序，空值在最后
@@ -750,14 +753,14 @@ public class X {
             Objects.requireNonNull(mapper, "mapper cannot be null");
 
             if (isEmpty()) {
-                return new ListStream<>(new ArrayList<>());
+                return of(new ArrayList<>());
             }
 
-            return new ListStream<>(new FlatteningIterable<>(source, mapper));
+            return of(new FlatteningIterable<>(source, mapper));
         }
 
         public final ListStream<T> peek(Consumer<T> consumer) {
-            return new ListStream<>(() -> new Iterator<>() {
+            return of(() -> new Iterator<>() {
                 final Iterator<T> iterator = source.iterator();
 
                 public boolean hasNext() {
@@ -773,7 +776,7 @@ public class X {
         }
 
         public ListStream<T> peekStream(Consumer<ListStream<T>> streamOperation) {
-            streamOperation.accept(new ListStream<>(source));
+            streamOperation.accept(of(source));
             return this;
         }
 
@@ -839,7 +842,7 @@ public class X {
         // 去重方法，按指定属性去重
         public ListStream<T> distinct(Function<T, ?> keyExtractor) {
             Set<Object> seen = ConcurrentHashMap.newKeySet();
-            return new ListStream<>(createFilteredIterable(elem -> {
+            return of(createFilteredIterable(elem -> {
                 if (seen.contains(keyExtractor.apply(elem))) {
                     return false;
                 }
@@ -851,7 +854,7 @@ public class X {
         // 去重方法（重载）
         public ListStream<T> distinct() {
             Set<Object> seen = ConcurrentHashMap.newKeySet();
-            return new ListStream<>(createFilteredIterable(elem -> {
+            return of(createFilteredIterable(elem -> {
                 if (seen.contains(elem)) {
                     return false;
                 }
@@ -892,18 +895,83 @@ public class X {
         }
 
         public List<T> toList() {
+            // 如果是Collection类型，直接返回size
+            if (source instanceof List<T>) {
+                return (List<T>) source;
+            }
             List<T> result = new ArrayList<>();
             source.forEach(result::add);
             return result;
         }
 
-        // 排序顺序枚举
-        public enum Sort {
-            Asc, Desc,
-            NullFirst, NullLast
+        public Set<T> toSet() {
+            // 如果是Collection类型，直接返回size
+            if (source instanceof Set<T>) {
+                return (Set<T>) source;
+            }
+            Set<T> result = new HashSet<>();
+            source.forEach(result::add);
+            return result;
         }
 
     }
+
+    // 内部类，封装流操作
+    public final static class SortStream<T> {
+        public <U extends Comparable<? super U>> Comparator<T> createComparator(
+                Function<? super T, ? extends U> keyExtractor,
+                Sort order,
+                Sort nullPosition) {
+
+            // 验证order参数
+            if (order != Sort.Asc && order != Sort.Desc) {
+                throw new IllegalArgumentException("order must be either Asc or Desc");
+            }
+
+            // 验证nullPosition参数
+            if (nullPosition != Sort.NullFirst && nullPosition != Sort.NullLast) {
+                throw new IllegalArgumentException("nullPosition must be either NullFirst or NullLast");
+            }
+
+            // 基础比较器
+
+            return (o1, o2) -> {
+                U key1 = keyExtractor.apply(o1);
+                U key2 = keyExtractor.apply(o2);
+
+                // 处理空值情况
+                if (key1 == null && key2 == null) {
+                    return 0;
+                }
+                if (key1 == null) {
+                    return nullPosition == Sort.NullFirst ? -1 : 1;
+                }
+                if (key2 == null) {
+                    return nullPosition == Sort.NullFirst ? 1 : -1;
+                }
+
+                // 正常比较
+                int comparison = key1.compareTo(key2);
+                return order == Sort.Asc ? comparison : -comparison;
+            };
+        }
+
+        /**
+         * 验证排序参数
+         */
+        private void validateSortParameters(Sort order, Sort nullPosition) {
+            // 验证order参数
+            if (order != Sort.Asc && order != Sort.Desc) {
+                throw new IllegalArgumentException("order must be either Asc or Desc");
+            }
+
+            // 验证nullPosition参数
+            if (nullPosition != Sort.NullFirst && nullPosition != Sort.NullLast) {
+                throw new IllegalArgumentException("nullPosition must be either NullFirst or NullLast");
+            }
+        }
+    }
+
 
     // 内部类，封装流操作
     public final static class MapListStream<K, V> {
@@ -982,8 +1050,7 @@ public class X {
         public void isBlankOrElse(Consumer<V> consumer, Runnable runnable) {
             if (isBlank()) {
                 consumer.accept(v);
-            }
-            else {
+            } else {
                 runnable.run();
             }
         }
@@ -998,8 +1065,7 @@ public class X {
         public void isNotBlankOrElse(Consumer<V> consumer, Runnable runnable) {
             if (isNotBlank()) {
                 consumer.accept(v);
-            }
-            else {
+            } else {
                 runnable.run();
             }
         }
@@ -1007,20 +1073,15 @@ public class X {
         public boolean isBlank() {
             if (v == null) {
                 return true;
-            }
-            else if (v instanceof Optional) {
+            } else if (v instanceof Optional) {
                 return ((Optional<?>) v).isEmpty();
-            }
-            else if (v instanceof CharSequence vStr) {
+            } else if (v instanceof CharSequence vStr) {
                 return vStr.length() == 0;
-            }
-            else if (v instanceof Collection) {
+            } else if (v instanceof Collection) {
                 return ((Collection<?>) v).isEmpty();
-            }
-            else if (v.getClass().isArray()) {
+            } else if (v.getClass().isArray()) {
                 return Array.getLength(v) == 0;
-            }
-            else if (v instanceof Map) {
+            } else if (v instanceof Map) {
                 return ((Map<?, ?>) v).isEmpty();
             }
             // else
@@ -1206,8 +1267,7 @@ public class X {
             Objects.requireNonNull(runnable, "runnable is null");
             if (isFailure()) {
                 return this;
-            }
-            else {
+            } else {
                 try {
                     runnable.run();
                     return this;
@@ -1221,8 +1281,7 @@ public class X {
             Objects.requireNonNull(consumer, "consumer is null");
             if (isFailure()) {
                 return this;
-            }
-            else {
+            } else {
                 try {
                     consumer.accept(get());
                     return this;

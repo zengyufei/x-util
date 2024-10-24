@@ -13,4 +13,5 @@ import java.io.Serializable;
 public final class User implements Serializable {
     String name;
     Integer age;
+    Integer height;
 }
