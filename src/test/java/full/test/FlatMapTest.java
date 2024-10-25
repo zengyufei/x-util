@@ -1,4 +1,4 @@
-package children;
+package full.test;
 
 import com.zyf.util.X;
 import org.junit.jupiter.api.MethodOrderer;

@@ -1,7 +1,7 @@
-package children;
+package full.test;
 
-import children.entity.User;
 import com.zyf.util.X;
+import full.test.entity.User;
 import org.junit.jupiter.api.*;
 
 import java.util.HashSet;

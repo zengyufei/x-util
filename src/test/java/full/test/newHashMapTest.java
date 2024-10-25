@@ -1,4 +1,4 @@
-package children;
+package full.test;
 
 
 import com.zyf.util.X;
@@ -30,6 +30,21 @@ public class newHashMapTest {
         }};
         final Map<Integer, String> my = X.map(1, "2")
                 .put(2, "3")
+                .map();
+        Assertions.assertEquals(jdk, my);
+    }
+
+    @Test
+    @Order(3)
+    public void map创建v3() {
+        final Map<Integer, String> jdk = new HashMap<>() {{
+            put(1, "2");
+            put(2, "3");
+        }};
+        final Map<Integer, String> my = X.map(1, "2")
+                .put(2, "3")
+                .hasKey(2, System.out::println)
+                .hasKey(4, "4", System.out::println)
                 .map();
         Assertions.assertEquals(jdk, my);
     }

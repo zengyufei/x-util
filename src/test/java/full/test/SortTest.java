@@ -1,9 +1,10 @@
-package children;
+package full.test;
 
-import children.entity.User;
 import com.zyf.util.X;
+import full.test.entity.User;
 import org.junit.jupiter.api.*;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -66,7 +67,7 @@ public class SortTest {
 
 
     @Test
-    @Order(2)
+    @Order(3)
     public void sort测试3() {
         final List<User> jdkList = X.list(
                         new User("Alice", 20, 168),  // 有变动
@@ -100,7 +101,7 @@ public class SortTest {
 
 
     @Test
-    @Order(2)
+    @Order(4)
     public void sort测试4() {
         final List<User> jdkList = X.list(
                         new User("Alice", 20, 168),  // 有变动
@@ -146,5 +147,61 @@ public class SortTest {
 
     }
 
+    @Test
+    @Order(5)
+    public void sort测试5() {
+        final List<User> jdkList = X.list(
+                        new User("Alice", 20, 168),  // 有变动
+                        new User("Bob", 17, 178),
+                        new User("Yama", 31, 201),
+                        new User("Charlie", 19, 155), // 有变动
+                        new User("David", 31, 158),
+                        new User("Eve", 5, 158)
+                )
+                .toList();
+
+        final List<User> myList = X.clone(jdkList);
+
+        List<Integer> jdk = jdkList.stream()
+                .map(User::getAge)
+                .sorted(Integer::compareTo)
+                .toList();
+
+        List<Integer> my = X.list(myList)
+                .sortAsc(User::getAge)
+                .map(User::getAge)
+                .toList();
+
+        Assertions.assertEquals(jdk, my);
+    }
+
+
+    @Test
+    @Order(6)
+    public void sort测试6() {
+        final List<User> jdkList = X.list(
+                        new User("Alice", 20, 168),  // 有变动
+                        new User("Bob", 17, 178),
+                        new User("Yama", 31, 201),
+                        new User("Charlie", 19, 155), // 有变动
+                        new User("David", 31, 158),
+                        new User("Eve", 5, 158)
+                )
+                .toList();
+
+        final List<User> myList = X.clone(jdkList);
+
+        List<Integer> jdk = jdkList.stream()
+                .map(User::getAge)
+                .sorted(Collections.reverseOrder())
+                .toList();
+
+        List<Integer> my = X.list(myList)
+                .sortDesc(User::getAge)
+                .map(User::getAge)
+                .toList();
+
+        Assertions.assertEquals(jdk, my);
+    }
 
 }

@@ -1,4 +1,4 @@
-package children.entity;
+package full.test.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,9 +9,8 @@ import java.io.Serializable;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-// User 类
-public final class User implements Serializable {
-    String name;
-    Integer age;
-    Integer height;
+// Role 类
+public final class Role implements Serializable {
+    String roleName;
+    Integer seqNo;
 }

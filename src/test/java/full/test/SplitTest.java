@@ -1,6 +1,7 @@
-package children;
+package full.test;
 
 import com.zyf.util.X;
+import full.test.entity.User;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,17 @@ public class SplitTest {
     @Test
     @Order(1)
     public void 切割list1() {
-        X.list(Data.用户集合)
+        final List<User> jdkList = X.list(
+                        new User("Alice", 20, 168),  // 有变动
+                        new User("Bob", 17, 178),
+                        new User("Yama", 17, 201),
+                        new User("Charlie", 19, 155), // 有变动
+                        new User("David", null, 158),
+                        new User("Eve", 5, 158)
+                )
+                .toList();
+
+        X.list(jdkList)
                 .split(1, list -> {
                     assert list.size() == 1;
                 });
@@ -24,7 +35,17 @@ public class SplitTest {
     @Test
     @Order(1)
     public void 切割list2() {
-        X.list(Data.用户集合)
+        final List<User> jdkList = X.list(
+                        new User("Alice", 20, 168),  // 有变动
+                        new User("Bob", 17, 178),
+                        new User("Yama", 17, 201),
+                        new User("Charlie", 19, 155), // 有变动
+                        new User("David", null, 158),
+                        new User("Eve", 5, 158)
+                )
+                .toList();
+
+        X.list(jdkList)
                 .split(2, list -> {
                     assert list.size() == 2;
                 });
@@ -33,7 +54,17 @@ public class SplitTest {
     @Test
     @Order(1)
     public void 切割list3() {
-        X.list(Data.用户集合)
+        final List<User> jdkList = X.list(
+                        new User("Alice", 20, 168),  // 有变动
+                        new User("Bob", 17, 178),
+                        new User("Yama", 17, 201),
+                        new User("Charlie", 19, 155), // 有变动
+                        new User("David", null, 158),
+                        new User("Eve", 5, 158)
+                )
+                .toList();
+
+        X.list(jdkList)
                 .split(3, list -> {
                     assert list.size() == 3;
                 });

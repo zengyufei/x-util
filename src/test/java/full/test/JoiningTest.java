@@ -1,17 +1,18 @@
-package children;
+package full.test;
 
-import children.entity.User;
 import com.zyf.util.X;
+import full.test.entity.User;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class SkipTest {
+public class JoiningTest {
 
     @Test
     @Order(1)
-    public void peek测试() {
+    public void joining测试() {
         final List<User> jdkList = X.list(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
@@ -24,13 +25,13 @@ public class SkipTest {
 
         final List<User> myList = X.clone(jdkList);
 
-        List<User> jdk = jdkList.stream()
-                .skip(3)
-                .toList();
+        String jdk = jdkList.stream()
+                .map(User::getName)
+                .collect(Collectors.joining(","));
 
-        List<User> my = X.list(myList)
-                .skip(3)
-                .toList();
+        String my = X.list(myList)
+                .map(User::getName)
+                .joining(",");
 
         Assertions.assertEquals(jdk, my);
     }

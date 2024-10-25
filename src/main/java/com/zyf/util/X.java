@@ -38,12 +38,6 @@ public class X {
         return map;
     }
 
-    // 排序顺序枚举
-    public enum Sort {
-        Asc, Desc,
-        NullFirst, NullLast
-    }
-
     public static <K, V> MapStream<K, V> map(K k, V v) {
         final Map<K, V> map = new HashMap<>();
         map.put(k, v);
@@ -53,14 +47,13 @@ public class X {
     // 静态工厂方法
     @SafeVarargs
     public static <T> ListStream<T> list(T... elements) {
-        return new ListStream<>(asList(elements));
+        return ListStream.of(asList(elements));
     }
 
     // 静态工厂方法
     public static <T> ListStream<T> list(List<T> list) {
-        return new ListStream<>(list == null ? new ArrayList<>() : list);
+        return ListStream.of(list == null ? new ArrayList<>() : list);
     }
-
 
     public static <V> Op<V> op(V v) {
         return new Op<>(v);
@@ -189,6 +182,45 @@ public class X {
         }
     }
 
+    // 排序顺序枚举
+    public enum Sort {
+        Asc, Desc,
+        NullFirst, NullLast
+    }
+
+    @FunctionalInterface
+    public interface CheckedFunction0<R> {
+        R apply() throws Throwable;
+    }
+
+    @FunctionalInterface
+    public interface CheckedConsumer<T> {
+        void accept(T t) throws Throwable;
+    }
+
+
+    @FunctionalInterface
+    public interface CheckedRunnable {
+        void run() throws Throwable;
+    }
+
+    interface TryModule {
+
+        static boolean isFatal(Throwable throwable) {
+            return throwable instanceof InterruptedException
+                    || throwable instanceof LinkageError
+                    || throwable instanceof ThreadDeath
+                    || throwable instanceof VirtualMachineError;
+        }
+
+        // DEV-NOTE: we do not plan to expose this as public API
+        @SuppressWarnings("unchecked")
+        static <T extends Throwable, R> R sneakyThrow(Throwable t) throws T {
+            throw (T) t;
+        }
+
+    }
+
     public static class ListStream<T> {
         private final Iterable<T> source;
 
@@ -223,7 +255,7 @@ public class X {
         public ListStream<T> concat(List<T> ts) {
             final List<T> list = toList();
             list.addAll(ts);
-            return new ListStream<>(list);
+            return of(list);
         }
 
         @SafeVarargs
@@ -235,23 +267,69 @@ public class X {
 
         public ListStream<T> skip(int skipIndex) {
             AtomicInteger i = new AtomicInteger(1);
-            return new ListStream<>(createFilteredIterable(elem -> i.getAndIncrement() > skipIndex));
+            return of(createFilteredIterable(elem -> i.getAndIncrement() > skipIndex));
         }
 
-        //
-//        public ListStream<T> sub(int subLen) {
-//            return new ListStream<>(list.subList(0, subLen));
-//        }
-//
-//        public ListStream<T> sub(int subBegin, int subEnd) {
-//            return new ListStream<>(list.subList(subBegin, subEnd + 1));
-//        }
-//
+
+        /**
+         * 返回一个新的 ListStream，包含原始列表的子列表，从索引 0 开始，长度为 subLen。
+         *
+         * @param subLen 子列表的长度
+         * @return 新的 ListStream 包含指定长度的子列表
+         * @throws IllegalArgumentException 如果 subLen 为负数
+         */
+        public ListStream<T> sub(int subLen) {
+            if (subLen < 0) {
+                throw new IllegalArgumentException("subLen must be non-negative");
+            }
+            return sub(0, subLen);
+        }
+
+        /**
+         * 返回一个新的 ListStream，包含原始列表的子列表，从索引 subBegin 开始，到索引 subEnd 结束（不包含）。
+         *
+         * @param subBegin 子列表的起始索引（包含）
+         * @param subEnd   子列表的结束索引（不包含）
+         * @return 新的 ListStream 包含指定范围的子列表
+         * @throws IllegalArgumentException 如果 subBegin 为负数，或者 subEnd 小于 subBegin
+         */
+        public ListStream<T> sub(int subBegin, int subEnd) {
+            if (subBegin < 0) {
+                throw new IllegalArgumentException("subBegin must be non-negative");
+            }
+            if (subEnd < subBegin) {
+                throw new IllegalArgumentException("subEnd must not be less than subBegin");
+            }
+
+            return of(() -> new Iterator<T>() {
+                private final Iterator<T> iterator = source.iterator();
+                private int currentIndex = 0;
+
+                @Override
+                public boolean hasNext() {
+                    return currentIndex < subEnd && iterator.hasNext();
+                }
+
+                @Override
+                public T next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+                    T next = iterator.next();
+                    currentIndex++;
+                    if (currentIndex <= subBegin) {
+                        return this.next(); // 跳过 subBegin 之前的元素
+                    }
+                    return next;
+                }
+            });
+        }
+
         public ListStream<T> reversed() {
             // 反转列表
             List<T> list = toList();
             Collections.reverse(list);
-            return new ListStream<>(list);
+            return of(list);
         }
 
         // 过滤或的实现
@@ -260,7 +338,7 @@ public class X {
         public final boolean anyMatch(Predicate<T>... predicates) {
             Iterable<T> filteredIterable = createFilteredIterable(elem ->
                     Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem)));
-            return new ListStream<>(filteredIterable).isNotEmpty();
+            return of(filteredIterable).isNotEmpty();
         }
 
         // 过滤或的实现
@@ -269,7 +347,7 @@ public class X {
         public final boolean noneMatch(Predicate<T>... predicates) {
             Iterable<T> filteredIterable = createFilteredIterable(elem ->
                     Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem)));
-            return new ListStream<>(filteredIterable).isEmpty();
+            return of(filteredIterable).isEmpty();
         }
 
         // 获取第一个元素
@@ -281,28 +359,46 @@ public class X {
             return null;
         }
 
-//        public ListStream<T> limit(int i) {
-//            List<T> result = list.stream()
-//                    .limit(i)
-//                    .collect(Collectors.toList());
-//            return new ListStream<>(result);
-//        }
+        public ListStream<T> limit(int size) {
+            return of(() -> new Iterator<T>() {
+                private final Iterator<T> iterator = source.iterator();
+                private int doneSize = 0;
+
+                @Override
+                public boolean hasNext() {
+                    final boolean hasNext = iterator.hasNext();
+                    if (hasNext && doneSize < size) {
+                        return hasNext;
+                    }
+                    return false;
+                }
+
+                @Override
+                public T next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+                    T next = iterator.next();
+                    doneSize++;
+                    return next;
+                }
+            });
+        }
 
 
-//        public String joining(CharSequence symbol) {
-//            StringJoiner sb = new StringJoiner(symbol);
-//            for (T t : list) {
-//                if (t instanceof CharSequence) {
-//                    sb.add((CharSequence) t);
-//                }
-//                else {
-//                    if (t != null) {
-//                        sb.add(t.toString());
-//                    }
-//                }
-//            }
-//            return sb.toString();
-//        }
+        public String joining(CharSequence symbol) {
+            StringJoiner sb = new StringJoiner(symbol);
+            for (T t : source) {
+                if (t instanceof CharSequence) {
+                    sb.add((CharSequence) t);
+                } else {
+                    if (t != null) {
+                        sb.add(t.toString());
+                    }
+                }
+            }
+            return sb.toString();
+        }
 
 
         // 过滤或的实现
@@ -314,7 +410,7 @@ public class X {
         // 过滤或的实现
         @SafeVarargs
         public final ListStream<T> ors(Predicate<T>... predicates) {
-            return new ListStream<>(createFilteredIterable(elem ->
+            return of(createFilteredIterable(elem ->
                     Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem))));
         }
 
@@ -590,27 +686,23 @@ public class X {
             });
         }
 
-        public <R> double sumDouble(Function<T, R> mapper) {
+        public double sumDouble(Function<T, Number> mapper) {
             return sumBigDecimal(mapper).doubleValue();
         }
 
-        public <R> int sumInt(Function<T, R> mapper) {
+        public int sumInt(Function<T, Number> mapper) {
             return sumBigDecimal(mapper).intValue();
         }
 
-        public <R> long sumLong(Function<T, R> mapper) {
+        public long sumLong(Function<T, Number> mapper) {
             return sumBigDecimal(mapper).longValue();
         }
 
-        public <R> BigDecimal sumBigDecimal(Function<T, R> mapper) {
+        public BigDecimal sumBigDecimal(Function<T, Number> mapper) {
             BigDecimal sum = new BigDecimal("0.0");
             for (T t : source) {
-                R r = mapper.apply(t);
-                if (r instanceof Number) {
-                    sum = sum.add(new BigDecimal(String.valueOf(r)));
-                } else {
-                    throw new IllegalArgumentException("不是数字,不能计算");
-                }
+                Number r = mapper.apply(t);
+                sum = sum.add(new BigDecimal(String.valueOf(r)));
             }
             return sum;
         }
@@ -865,16 +957,6 @@ public class X {
 
         // 获取大小的方法
         public long size() {
-            if (source == null) {
-                return 0;
-            }
-
-            // 如果是Collection类型，直接使用size()方法
-            if (source instanceof Collection) {
-                return ((Collection<?>) source).size();
-            }
-
-            // 如果是普通Iterable，需要遍历计数
             return count();
         }
 
@@ -972,7 +1054,6 @@ public class X {
         }
     }
 
-
     // 内部类，封装流操作
     public final static class MapListStream<K, V> {
         private final Map<K, List<V>> map;
@@ -1002,16 +1083,20 @@ public class X {
             this.map = map;
         }
 
-        public void hasKey(K key, Consumer<V> consumer) {
+        public MapStream<K, V> hasKey(K key, Consumer<V> consumer) {
             if (map.containsKey(key)) {
                 consumer.accept(map.get(key));
             }
+            return this;
         }
 
-        public void hasKey(K key, V defaultValue, Consumer<V> consumer) {
+        public MapStream<K, V> hasKey(K key, V defaultValue, Consumer<V> consumer) {
             if (map.containsKey(key)) {
                 consumer.accept(map.getOrDefault(key, defaultValue));
+            } else {
+                consumer.accept(defaultValue);
             }
+            return this;
         }
 
         public MapStream<K, V> put(K k, V v) {
@@ -1476,106 +1561,75 @@ public class X {
 
     }
 
-    @FunctionalInterface
-    public interface CheckedFunction0<R> {
-        R apply() throws Throwable;
-    }
+    /**
+     * 用于实现扁平化迭代的内部类
+     */
+    private static class FlatteningIterable<T, R> implements Iterable<R> {
+        private final Iterable<? extends T> source;
+        private final Function<? super T, ? extends Iterable<? extends R>> mapper;
 
-    @FunctionalInterface
-    public interface CheckedConsumer<T> {
-        void accept(T t) throws Throwable;
-    }
-
-    @FunctionalInterface
-    public interface CheckedRunnable {
-        void run() throws Throwable;
-    }
-
-    interface TryModule {
-
-        static boolean isFatal(Throwable throwable) {
-            return throwable instanceof InterruptedException
-                    || throwable instanceof LinkageError
-                    || throwable instanceof ThreadDeath
-                    || throwable instanceof VirtualMachineError;
+        FlatteningIterable(Iterable<? extends T> source,
+                           Function<? super T, ? extends Iterable<? extends R>> mapper) {
+            this.source = source;
+            this.mapper = mapper;
         }
 
-        // DEV-NOTE: we do not plan to expose this as public API
-        @SuppressWarnings("unchecked")
-        static <T extends Throwable, R> R sneakyThrow(Throwable t) throws T {
-            throw (T) t;
+        @Override
+        public Iterator<R> iterator() {
+            return new FlatteningIterator<>(source.iterator(), mapper);
+        }
+    }
+
+    /**
+     * 用于实现扁平化迭代的迭代器
+     */
+    private static class FlatteningIterator<T, R> implements Iterator<R> {
+        private final Iterator<? extends T> sourceIterator;
+        private final Function<? super T, ? extends Iterable<? extends R>> mapper;
+        private Iterator<? extends R> currentIterator;
+        private boolean hasNextComputed;
+        private boolean hasNextResult;
+
+        FlatteningIterator(Iterator<? extends T> sourceIterator,
+                           Function<? super T, ? extends Iterable<? extends R>> mapper) {
+            this.sourceIterator = sourceIterator;
+            this.mapper = mapper;
+            this.currentIterator = Collections.emptyIterator();
         }
 
-    }
-}
-
-/**
- * 用于实现扁平化迭代的内部类
- */
-class FlatteningIterable<T, R> implements Iterable<R> {
-    private final Iterable<? extends T> source;
-    private final Function<? super T, ? extends Iterable<? extends R>> mapper;
-
-    FlatteningIterable(Iterable<? extends T> source,
-                       Function<? super T, ? extends Iterable<? extends R>> mapper) {
-        this.source = source;
-        this.mapper = mapper;
-    }
-
-    @Override
-    public Iterator<R> iterator() {
-        return new FlatteningIterator<>(source.iterator(), mapper);
-    }
-}
-
-/**
- * 用于实现扁平化迭代的迭代器
- */
-class FlatteningIterator<T, R> implements Iterator<R> {
-    private final Iterator<? extends T> sourceIterator;
-    private final Function<? super T, ? extends Iterable<? extends R>> mapper;
-    private Iterator<? extends R> currentIterator;
-    private boolean hasNextComputed;
-    private boolean hasNextResult;
-
-    FlatteningIterator(Iterator<? extends T> sourceIterator,
-                       Function<? super T, ? extends Iterable<? extends R>> mapper) {
-        this.sourceIterator = sourceIterator;
-        this.mapper = mapper;
-        this.currentIterator = Collections.emptyIterator();
-    }
-
-    @Override
-    public boolean hasNext() {
-        if (!hasNextComputed) {
-            computeNext();
+        @Override
+        public boolean hasNext() {
+            if (!hasNextComputed) {
+                computeNext();
+            }
+            return hasNextResult;
         }
-        return hasNextResult;
-    }
 
-    @Override
-    public R next() {
-        if (!hasNextComputed) {
-            computeNext();
+        @Override
+        public R next() {
+            if (!hasNextComputed) {
+                computeNext();
+            }
+            if (!hasNextResult) {
+                throw new NoSuchElementException();
+            }
+            hasNextComputed = false;
+            return currentIterator.next();
         }
-        if (!hasNextResult) {
-            throw new NoSuchElementException();
-        }
-        hasNextComputed = false;
-        return currentIterator.next();
-    }
 
-    private void computeNext() {
-        while (!currentIterator.hasNext() && sourceIterator.hasNext()) {
-            T nextElement = sourceIterator.next();
-            if (nextElement != null) {
-                Iterable<? extends R> nextIterable = mapper.apply(nextElement);
-                if (nextIterable != null) {
-                    currentIterator = nextIterable.iterator();
+        private void computeNext() {
+            while (!currentIterator.hasNext() && sourceIterator.hasNext()) {
+                T nextElement = sourceIterator.next();
+                if (nextElement != null) {
+                    Iterable<? extends R> nextIterable = mapper.apply(nextElement);
+                    if (nextIterable != null) {
+                        currentIterator = nextIterable.iterator();
+                    }
                 }
             }
+            hasNextResult = currentIterator.hasNext();
+            hasNextComputed = true;
         }
-        hasNextResult = currentIterator.hasNext();
-        hasNextComputed = true;
     }
+
 }
