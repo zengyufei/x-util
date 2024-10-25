@@ -22,16 +22,19 @@ public class X {
         return new ArrayList<>(Arrays.asList(elements));
     }
 
-    //    public static <K, V> void hasKey(Map<K, V> map, K key, Consumer<V> has, Runnable noHas) {
-//        if (map.containsKey(key)) {
-//            final V v = map.get(key);
-//            has.accept(v);
-//        }
-//        else {
-//            noHas.run();
-//        }
-//
-//    }
+    public static <K, V> void hasKey(Map<K, V> map, K key, Consumer<V> has, CheckedRunnable noHas) {
+        if (map.containsKey(key)) {
+            final V v = map.get(key);
+            has.accept(v);
+        } else {
+            try {
+                noHas.run();
+            } catch (Throwable e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
     public static <K, V> Map<K, V> asMap(K k, V v) {
         final Map<K, V> map = new HashMap<>();
         map.put(k, v);
@@ -1073,6 +1076,17 @@ public class X {
             }
             return new ArrayList<>();
         }
+
+        public <R> MapStream<K, List<R>> valueStream(Function<ListStream<V>, List<R>> func) {
+            final Map<K, List<R>> newMap = new LinkedHashMap<>();
+            for (Map.Entry<K, List<V>> entry : map.entrySet()) {
+                final K key = entry.getKey();
+                final List<V> values = entry.getValue();
+                List<R> rList = new ArrayList<>(func.apply(new ListStream<>(values)));
+                newMap.put(key, rList);
+            }
+            return new MapStream<>(newMap);
+        }
     }
 
     // 内部类，封装流操作
@@ -1104,7 +1118,7 @@ public class X {
             return this;
         }
 
-        public Map<K, V> map() {
+        public Map<K, V> toMap() {
             return map;
         }
     }

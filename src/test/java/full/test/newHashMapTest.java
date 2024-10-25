@@ -30,7 +30,7 @@ public class newHashMapTest {
         }};
         final Map<Integer, String> my = X.map(1, "2")
                 .put(2, "3")
-                .map();
+                .toMap();
         Assertions.assertEquals(jdk, my);
     }
 
@@ -45,7 +45,7 @@ public class newHashMapTest {
                 .put(2, "3")
                 .hasKey(2, System.out::println)
                 .hasKey(4, "4", System.out::println)
-                .map();
+                .toMap();
         Assertions.assertEquals(jdk, my);
     }
 
