@@ -1,14 +1,22 @@
-# 场景测试
+package full;
 
-```java
+import com.zyf.util.X;
+import full.test.entity.Role;
+import full.test.entity.User;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+
 public class XTest {
 
     public static void main(String[] args) {
 
         final List<User> jdkList = X.list(
-                        new User("Alice", 20, 168),
+                        new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
-                        new User("Charlie", 19, 155),
+                        new User("Charlie", 19, 155), // 有变动
                         new User("David", null, 158),
                         new User("Eve", 5, 158),
                         new User("Jack", 5, 152)
@@ -378,9 +386,8 @@ public class XTest {
                 .groupBy(User::getAge)
                 .valueStream(e -> e.map(User::getName).toList())
                 .toMap();
+
     }
 
 
 }
-
-```
