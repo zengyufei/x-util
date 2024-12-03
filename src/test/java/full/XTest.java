@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class XTest {
 
@@ -106,6 +107,19 @@ public class XTest {
         X.list(myList)
                 .groupBy(User::getAge)
                 .valueStream(e -> e.map(User::getName).toList())
+                .toMap();
+
+
+        Map<Integer, Map<String, Long>> myGroup = X.list(myList)
+                .groupBy(User::getAge)
+                .valueStream(e -> e.groupBy(User::getName).valueStream(X.ListStream::count).toMap())
+                .toMap();
+
+        Map<Integer, Map<String, Long>> myGroup2 = X.list(myList)
+                .groupingBy(
+                        User::getAge,
+                        Collectors.groupingBy(User::getName, Collectors.counting())
+                )
                 .toMap();
 
         X.list(myList)

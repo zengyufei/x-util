@@ -89,4 +89,59 @@ public class GroupByTest {
     }
 
 
+    @Test
+    @Order(4)
+    public void groupBy测试4() {
+        final List<User> jdkList = X.list(
+                        new User("Alice", 20, 168),  // 有变动
+                        new User("Bob", 17, 178),
+                        new User("Yama", 31, 201),
+                        new User("Charlie", 19, 155), // 有变动
+                        new User("David", 42, 158),
+                        new User("Eve", 5, 158)
+                )
+                .toList();
+
+        final List<User> myList = X.clone(jdkList);
+
+        Map<Integer, Map<String, Long>> jdk = jdkList.stream()
+                .collect(Collectors.groupingBy(User::getAge, Collectors.groupingBy(User::getName, Collectors.counting())));
+
+        Map<Integer, Map<String, Long>> my = X.list(myList)
+                .groupBy(User::getAge)
+                .valueStream(e -> e.groupBy(User::getName).valueStream(X.ListStream::count).toMap())
+                .toMap();
+
+        Assertions.assertEquals(jdk, my);
+    }
+
+
+    @Test
+    @Order(5)
+    public void groupBy测试5() {
+        final List<User> jdkList = X.list(
+                        new User("Alice", 20, 168),  // 有变动
+                        new User("Bob", 17, 178),
+                        new User("Yama", 31, 201),
+                        new User("Charlie", 19, 155), // 有变动
+                        new User("David", 42, 158),
+                        new User("Eve", 5, 158)
+                )
+                .toList();
+
+        final List<User> myList = X.clone(jdkList);
+
+        Map<Integer, Map<String, Long>> jdk = jdkList.stream()
+                .collect(Collectors.groupingBy(User::getAge, Collectors.groupingBy(User::getName, Collectors.counting())));
+
+        Map<Integer, Map<String, Long>> my = X.list(myList)
+                .groupingBy(
+                        User::getAge,
+                        Collectors.groupingBy(User::getName, Collectors.counting())
+                )
+                .toMap();
+        Assertions.assertEquals(jdk, my);
+    }
+
+
 }
