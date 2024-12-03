@@ -10,6 +10,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.*;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 public class X {
@@ -641,6 +642,34 @@ public class X {
             return new MapListStream<>(result);
         }
 
+        public <S, A, V> MapStream<S, V> groupingBy(
+                Function<T, S> keyMapper,
+                Collector<T, A, V> collector
+        ) {
+            // 获取collector的组件
+            Supplier<A> supplier = collector.supplier();
+            BiConsumer<A, T> accumulator = collector.accumulator();
+            Function<A, V> finisher = collector.finisher();
+
+            // 同时进行分组和累加，避免两次遍历
+            Map<S, A> accumulatorMap = new HashMap<>();
+            for (T element : source) {
+                S key = keyMapper.apply(element);
+                // 获取或创建累加器
+                A acc = accumulatorMap.computeIfAbsent(key, k -> supplier.get());
+                // 直接累加元素
+                accumulator.accept(acc, element);
+            }
+
+            // 对每个分组应用finisher得到最终结果
+            Map<S, V> finalResult = new HashMap<>(accumulatorMap.size());
+            for (Map.Entry<S, A> entry : accumulatorMap.entrySet()) {
+                finalResult.put(entry.getKey(), finisher.apply(entry.getValue()));
+            }
+
+            return new MapStream<>(finalResult);
+        }
+
         /**
          * 将元素转换为LinkedHashMap，保持插入顺序
          */
@@ -1065,7 +1094,6 @@ public class X {
             this.map = map;
         }
 
-
         public Map<K, List<V>> toMap() {
             return map;
         }
@@ -1077,13 +1105,44 @@ public class X {
             return new ArrayList<>();
         }
 
-        public <R> MapStream<K, List<R>> valueStream(Function<ListStream<V>, List<R>> func) {
-            final Map<K, List<R>> newMap = new LinkedHashMap<>();
+//        public <R> MapStream<K, R> apply(Function<ListStream<V>, R> func) {
+//            final Map<K, R> newMap = new LinkedHashMap<>();
+//            for (Map.Entry<K, List<V>> entry : map.entrySet()) {
+//                final K key = entry.getKey();
+//                final List<V> values = entry.getValue();
+//                R apply = func.apply(new ListStream<>(values));
+//                newMap.put(key, apply);
+//            }
+//            return new MapStream<>(newMap);
+//        }
+
+//        public <R> MapStream<K, List<R>> valueStream(Function<ListStream<V>, List<R>> func) {
+//            final Map<K, List<R>> newMap = new LinkedHashMap<>();
+//            for (Map.Entry<K, List<V>> entry : map.entrySet()) {
+//                final K key = entry.getKey();
+//                final List<V> values = entry.getValue();
+//                List<R> rList = new ArrayList<>(func.apply(new ListStream<>(values)));
+//                newMap.put(key, rList);
+//            }
+//            return new MapStream<>(newMap);
+//        }
+
+//        public <R> MapStream<K, Map<K, List<V>>> valueStreamGroupByMap(Function<ListStream<V>, Map<K, List<V>>> func) {
+//            final Map<K, Map<K, List<V>>> newMap = new LinkedHashMap<>();
+//            for (Map.Entry<K, List<V>> entry : map.entrySet()) {
+//                final K key = entry.getKey();
+//                final List<V> values = entry.getValue();
+//                newMap.put(key, func.apply(new ListStream<>(values)));
+//            }
+//            return new MapStream<>(newMap);
+//        }
+
+        public <R> MapStream<K, R> valueStream(Function<ListStream<V>, R> func) {
+            final Map<K, R> newMap = new LinkedHashMap<>();
             for (Map.Entry<K, List<V>> entry : map.entrySet()) {
                 final K key = entry.getKey();
                 final List<V> values = entry.getValue();
-                List<R> rList = new ArrayList<>(func.apply(new ListStream<>(values)));
-                newMap.put(key, rList);
+                newMap.put(key, func.apply(new ListStream<>(values)));
             }
             return new MapStream<>(newMap);
         }
@@ -1371,7 +1430,7 @@ public class X {
                     runnable.run();
                     return this;
                 } catch (Throwable t) {
-                    return new Try.Failure<>(t);
+                    return new Failure<>(t);
                 }
             }
         }
@@ -1385,7 +1444,7 @@ public class X {
                     consumer.accept(get());
                     return this;
                 } catch (Throwable t) {
-                    return new Try.Failure<>(t);
+                    return new Failure<>(t);
                 }
             }
         }
@@ -1431,7 +1490,7 @@ public class X {
                 runnable.run();
                 return this;
             } catch (Throwable t) {
-                return new Try.Failure<>(t);
+                return new Failure<>(t);
             }
         }
 
