@@ -1,6 +1,7 @@
 package full.test;
 
 import com.zyf.util.X;
+import full.test.entity.User;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ public class FlatMapTest {
     }
 
     @Test
-    @Order(1)
+    @Order(2)
     public void flatMap测试2() {
         List<List<List<Integer>>> list = new ArrayList<>();
         list.add(X.asList(X.asList(1, 2, 3, 4, 5), X.asList(6, 7, 8, 9, 10)));
@@ -53,6 +54,36 @@ public class FlatMapTest {
         List<Integer> my = X.list(list)
                 .flatMap(e -> e)
                 .flatMap(e -> e)
+                .toList();
+
+        for (int i = 0; i < jdk.size(); i++) {
+            final Integer t1 = jdk.get(i);
+            final Integer t2 = my.get(i);
+            assert Objects.equals(t1, t2);
+        }
+    }
+
+    @Test
+    @Order(3)
+    public void flatMap测试3() {
+        List<List<User>> list = new ArrayList<>();
+        list.add(X.asList(
+                new User("Alice", 20, 168),  // 有变动
+                new User("Bob", 17, 178),
+                new User("Yama", 17, 201)));
+        list.add(X.asList(
+                new User("Charlie", 19, 155), // 有变动
+                new User("David", null, 158),
+                new User("Eve", 5, 158)));
+
+        List<Integer> jdk = list.stream()
+                .flatMap(Collection::stream)
+                .map(User::getAge)
+                .toList();
+
+        List<Integer> my = X.list(list)
+                .flatMap(e -> e)
+                .map(User::getAge)
                 .toList();
 
         for (int i = 0; i < jdk.size(); i++) {

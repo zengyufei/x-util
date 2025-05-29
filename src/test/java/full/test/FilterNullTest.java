@@ -12,7 +12,7 @@ public class FilterNullTest {
     @Test
     @Order(1)
     public void filterNull测试() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -39,7 +39,7 @@ public class FilterNullTest {
     @Test
     @Order(2)
     public void filterNull测试2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -66,7 +66,7 @@ public class FilterNullTest {
     @Test
     @Order(3)
     public void filterNull测试3() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),

@@ -1,5 +1,6 @@
 package full.test;
 
+import com.zyf.util.Sort;
 import com.zyf.util.X;
 import full.test.entity.User;
 import org.junit.jupiter.api.*;
@@ -13,7 +14,7 @@ public class ReversedTest {
     @Test
     @Order(1)
     public void reversed测试() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 10, 201),
@@ -30,7 +31,7 @@ public class ReversedTest {
                 .toList();
 
         List<User> my = X.list(myList)
-                .sort(User::getAge, X.Sort.Asc)
+                .sort(User::getAge, Sort.Asc)
                 .reversed()
                 .toList();
 

@@ -4,16 +4,14 @@ import com.zyf.util.X;
 import full.test.entity.User;
 import org.junit.jupiter.api.*;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ReduceTest {
+public class TakeTest {
 
     @Test
     @Order(1)
-    public void reduce统计年龄和() {
+    public void take测试() {
         final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
@@ -26,25 +24,26 @@ public class ReduceTest {
 
         final List<User> myList = X.clone(jdkList);
 
-        List<Integer> jdk = jdkList.stream()
-                .map(User::getAge)
-                .filter(Objects::nonNull)
-                .reduce(new ArrayList<>(), (list, a) -> {
-                    list.add(a);
-                    return list;
-                }, (o, o2) -> o);
+        List<User> jdk = jdkList.stream()
+                .limit(3)
+                .toList();
 
-        List<Integer> my = X.list(myList)
-                .isNotNull(User::getAge)
-                .map(User::getAge)
-                .reduce(ArrayList::new, ArrayList::add);
+        List<User> my = X.list(myList)
+                .take(3)
+                .toList();
 
         Assertions.assertEquals(jdk, my);
+
+        List<User> my2 = X.list(myList)
+                .take(3)
+                .toList();
+
+        Assertions.assertEquals(jdk, my2);
     }
 
     @Test
     @Order(2)
-    public void reduce统计年龄和v2() {
+    public void limit测试() {
         final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
@@ -57,21 +56,17 @@ public class ReduceTest {
 
         final List<User> myList = X.clone(jdkList);
 
-        List<Integer> jdk = jdkList.stream()
-                .map(User::getAge)
-                .filter(Objects::nonNull)
-                .reduce(new ArrayList<>(), (list, a) -> {
-                    list.add(a);
-                    return list;
-                }, (o, o2) -> o);
+        List<User> jdk = jdkList.stream()
+                .skip(1)
+                .limit(3)
+                .toList();
 
-        List<Integer> my = X.list(myList)
-                .isNotNull(User::getAge)
-                .reduce(ArrayList::new, User::getAge, ArrayList::add);
+        List<User> my = X.list(myList)
+                .skip(1)
+                .limit(3)
+                .toList();
 
-        for (Integer integer : my) {
-            assert jdk.contains(integer);
-        }
+        Assertions.assertEquals(jdk, my);
     }
 
 

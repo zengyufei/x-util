@@ -14,7 +14,7 @@ public class DistinctTest {
     @Test
     @Order(1)
     public void distinct测试() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),
@@ -42,7 +42,7 @@ public class DistinctTest {
     @Test
     @Order(2)
     public void distinct测试2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),

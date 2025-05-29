@@ -1,5 +1,6 @@
 package full.test;
 
+import com.zyf.util.Op;
 import com.zyf.util.X;
 import full.test.entity.User;
 import org.junit.jupiter.api.MethodOrderer;
@@ -16,7 +17,7 @@ public class OpTest {
     @Test
     @Order(1)
     public void op获取不为空() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -42,7 +43,7 @@ public class OpTest {
             System.out.println("jdk isPresent");
         }
 
-        X.Op<User> op = X.op(jdk);
+        Op<User> op = X.op(jdk);
         op.isNotBlank(user -> {
             System.out.println("my isNotBlank");
         });
@@ -60,7 +61,7 @@ public class OpTest {
     @Test
     @Order(2)
     public void op获取为空() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -75,7 +76,7 @@ public class OpTest {
             System.out.println("jdk isEmpty");
         }
 
-        X.Op<User> op = X.op(null);
+        Op<User> op = X.op(null);
         op.isBlank(user -> {
             System.out.println("my isBlank " + user);
         });
@@ -93,7 +94,7 @@ public class OpTest {
     @Test
     @Order(3)
     public void op获取属性() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),

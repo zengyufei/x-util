@@ -12,7 +12,7 @@ public class PeekTest {
     @Test
     @Order(1)
     public void peek测试() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -40,7 +40,7 @@ public class PeekTest {
     @Test
     @Order(2)
     public void peek测试2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),

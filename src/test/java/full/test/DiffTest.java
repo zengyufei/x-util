@@ -18,7 +18,7 @@ public class DiffTest {
     @Test
     @Order(1)
     public void diff同类型对比() {
-        final List<User> oldList = X.list(
+        final List<User> oldList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -28,7 +28,7 @@ public class DiffTest {
                 )
                 .toList();
 
-        final List<User> newList = X.list(
+        final List<User> newList = X.listOf(
                         new User("Alice123", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -65,7 +65,7 @@ public class DiffTest {
     @Order(2)
     public void diff不同类型对比() {
         final String someName = "张三";
-        final List<User> userList = X.list(
+        final List<User> userList = X.listOf(
                         new User(someName, 20, 168),  // 名字相同
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),

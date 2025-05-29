@@ -12,7 +12,7 @@ public class SkipTest {
     @Test
     @Order(1)
     public void peek测试() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -33,6 +33,12 @@ public class SkipTest {
                 .toList();
 
         Assertions.assertEquals(jdk, my);
+
+        List<User> my2 = X.list(myList)
+                .drop(3)
+                .toList();
+
+        Assertions.assertEquals(jdk, my2);
     }
 
 

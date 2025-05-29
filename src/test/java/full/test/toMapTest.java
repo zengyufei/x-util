@@ -18,7 +18,7 @@ public class toMapTest {
     @Test
     @Order(1)
     public void toMap测试() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -44,7 +44,7 @@ public class toMapTest {
     @Test
     @Order(2)
     public void toMap测试2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -73,7 +73,7 @@ public class toMapTest {
     @Test
     @Order(3)
     public void toMap测试3() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -102,7 +102,7 @@ public class toMapTest {
     @Test
     @Order(4)
     public void toMap测试4() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),

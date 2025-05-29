@@ -25,7 +25,7 @@ public class FullTest {
         testClass(ForEachTest.class);
         testClass(GroupByTest.class);
         testClass(JoiningTest.class);
-        testClass(LimitTest.class);
+        testClass(TakeTest.class);
         testClass(MapTest.class);
         testClass(newArrayListTest.class);
         testClass(newHashMapTest.class);

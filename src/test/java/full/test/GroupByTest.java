@@ -1,5 +1,6 @@
 package full.test;
 
+import com.zyf.util.ListStream;
 import com.zyf.util.X;
 import full.test.entity.User;
 import org.junit.jupiter.api.*;
@@ -14,7 +15,7 @@ public class GroupByTest {
     @Test
     @Order(1)
     public void groupBy测试() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),
@@ -39,7 +40,7 @@ public class GroupByTest {
     @Test
     @Order(2)
     public void groupBy测试2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),
@@ -65,7 +66,7 @@ public class GroupByTest {
     @Test
     @Order(3)
     public void groupBy测试3() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),
@@ -92,7 +93,7 @@ public class GroupByTest {
     @Test
     @Order(4)
     public void groupBy测试4() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),
@@ -109,7 +110,7 @@ public class GroupByTest {
 
         Map<Integer, Map<String, Long>> my = X.list(myList)
                 .groupBy(User::getAge)
-                .valueStream(e -> e.groupBy(User::getName).valueStream(X.ListStream::count).toMap())
+                .valueStream(e -> e.groupBy(User::getName).valueStream(ListStream::count).toMap())
                 .toMap();
 
         Assertions.assertEquals(jdk, my);
@@ -119,7 +120,7 @@ public class GroupByTest {
     @Test
     @Order(5)
     public void groupBy测试5() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),

@@ -15,7 +15,7 @@ public class FiltersTest {
     @Test
     @Order(1)
     public void 过滤年龄不为空() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -41,7 +41,7 @@ public class FiltersTest {
     @Test
     @Order(2)
     public void 过滤年龄不为空v2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -67,7 +67,7 @@ public class FiltersTest {
     @Test
     @Order(3)
     public void 过滤年龄不为空v3() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -93,7 +93,7 @@ public class FiltersTest {
     @Test
     @Order(4)
     public void 过滤年龄不为空且年龄大于17() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -121,7 +121,7 @@ public class FiltersTest {
     @Test
     @Order(5)
     public void 过滤年龄不为空且年龄大于17v2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -149,7 +149,7 @@ public class FiltersTest {
     @Test
     @Order(6)
     public void 过滤年龄不为空且年龄大于17v3() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -177,7 +177,7 @@ public class FiltersTest {
     @Test
     @Order(7)
     public void 过滤年龄不为空且年龄大于17v4() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),

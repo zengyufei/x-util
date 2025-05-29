@@ -23,7 +23,7 @@ public class newArrayListTest {
     @Order(1)
     public void list创建2() {
         final List<Integer> jdk = Arrays.asList(2, 3, 4, 5);
-        final List<Integer> my = X.list(1, 2, 3, 4)
+        final List<Integer> my = X.listOf(1, 2, 3, 4)
                 .map(e -> e + 1)
                 .toList();
         Assertions.assertEquals(jdk, my);

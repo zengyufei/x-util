@@ -1,5 +1,6 @@
 package full.test;
 
+import com.zyf.util.Sort;
 import com.zyf.util.X;
 import full.test.entity.User;
 import org.junit.jupiter.api.*;
@@ -14,7 +15,7 @@ public class SortTest {
     @Test
     @Order(1)
     public void sort测试() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),
@@ -42,7 +43,7 @@ public class SortTest {
     @Test
     @Order(2)
     public void sort测试2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),
@@ -69,7 +70,7 @@ public class SortTest {
     @Test
     @Order(3)
     public void sort测试3() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),
@@ -93,7 +94,7 @@ public class SortTest {
                 .toList();
 
         List<User> my = X.list(myList)
-                .sort(User::getAge, X.Sort.Desc, X.Sort.NullFirst)
+                .sort(User::getAge, Sort.Desc, Sort.NullFirst)
                 .toList();
 
         Assertions.assertEquals(jdk, my);
@@ -103,7 +104,7 @@ public class SortTest {
     @Test
     @Order(4)
     public void sort测试4() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -138,8 +139,8 @@ public class SortTest {
 
         List<User> my = X.list(myList)
                 .sort(
-                        s -> s.createComparator(User::getAge, X.Sort.Desc, X.Sort.NullLast),
-                        s -> s.createComparator(User::getHeight, X.Sort.Desc, X.Sort.NullLast)
+                        s -> s.createComparator(User::getAge, Sort.Desc, Sort.NullLast),
+                        s -> s.createComparator(User::getHeight, Sort.Desc, Sort.NullLast)
                 )
                 .toList();
 
@@ -150,7 +151,7 @@ public class SortTest {
     @Test
     @Order(5)
     public void sort测试5() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),
@@ -179,7 +180,7 @@ public class SortTest {
     @Test
     @Order(6)
     public void sort测试6() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 31, 201),

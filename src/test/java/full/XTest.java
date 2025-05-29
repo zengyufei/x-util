@@ -1,5 +1,8 @@
 package full;
 
+import com.zyf.util.ListStream;
+import com.zyf.util.Op;
+import com.zyf.util.Sort;
 import com.zyf.util.X;
 import full.test.entity.Role;
 import full.test.entity.User;
@@ -14,7 +17,7 @@ public class XTest {
 
     public static void main(String[] args) {
 
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Charlie", 19, 155), // 有变动
@@ -112,7 +115,7 @@ public class XTest {
 
         Map<Integer, Map<String, Long>> myGroup = X.list(myList)
                 .groupBy(User::getAge)
-                .valueStream(e -> e.groupBy(User::getName).valueStream(X.ListStream::count).toMap())
+                .valueStream(e -> e.groupBy(User::getName).valueStream(ListStream::count).toMap())
                 .toMap();
 
         Map<Integer, Map<String, Long>> myGroup2 = X.list(myList)
@@ -132,7 +135,7 @@ public class XTest {
 
         X.asList(1, 2, 3, 4);
 
-        X.list(1, 2, 3, 4)
+        X.listOf(1, 2, 3, 4)
                 .map(e -> e + 1)
                 .toList();
 
@@ -148,7 +151,7 @@ public class XTest {
                 .hasKey(4, "4", System.out::println) // 4
                 .toMap();
 
-        X.Op<User> op = X.op(myList.get(0));
+        Op<User> op = X.op(myList.get(0));
         op.isNotBlank(user -> {
             System.out.println("my isNotBlank");
         });
@@ -202,7 +205,7 @@ public class XTest {
 
 
         X.list(myList)
-                .sort(User::getAge, X.Sort.Asc)
+                .sort(User::getAge, Sort.Asc)
                 .reversed()
                 .toList();
 
@@ -221,13 +224,13 @@ public class XTest {
 
         X.list(myList)
                 .sort(
-                        s -> s.createComparator(User::getAge, X.Sort.Desc, X.Sort.NullLast),
-                        s -> s.createComparator(User::getHeight, X.Sort.Desc, X.Sort.NullLast)
+                        s -> s.createComparator(User::getAge, Sort.Desc, Sort.NullLast),
+                        s -> s.createComparator(User::getHeight, Sort.Desc, Sort.NullLast)
                 )
                 .toList();
 
         X.list(myList)
-                .sort(User::getAge, X.Sort.Desc, X.Sort.NullFirst)
+                .sort(User::getAge, Sort.Desc, Sort.NullFirst)
                 .toList();
 
         X.list(myList)

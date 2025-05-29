@@ -13,7 +13,7 @@ public class SumTest {
     @Test
     @Order(1)
     public void 年龄和int类型() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -42,7 +42,7 @@ public class SumTest {
     @Test
     @Order(2)
     public void 年龄和int类型v2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -70,7 +70,7 @@ public class SumTest {
     @Test
     @Order(3)
     public void error年龄和int() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -89,7 +89,7 @@ public class SumTest {
     @Test
     @Order(4)
     public void 年龄和double类型() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -118,7 +118,7 @@ public class SumTest {
     @Test
     @Order(5)
     public void 年龄和double类型v2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -146,7 +146,7 @@ public class SumTest {
     @Test
     @Order(6)
     public void error年龄和double() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -166,7 +166,7 @@ public class SumTest {
     @Test
     @Order(7)
     public void 年龄和long类型() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -195,7 +195,7 @@ public class SumTest {
     @Test
     @Order(8)
     public void 年龄和long类型v2() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
@@ -223,7 +223,7 @@ public class SumTest {
     @Test
     @Order(9)
     public void error年龄和long() {
-        final List<User> jdkList = X.list(
+        final List<User> jdkList = X.listOf(
                         new User("Alice", 20, 168),  // 有变动
                         new User("Bob", 17, 178),
                         new User("Yama", 17, 201),
