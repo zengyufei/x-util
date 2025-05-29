@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 // 内部类，封装流操作
-public final class MapStream<K, V> {
+public class MapStream<K, V> {
     private final Map<K, V> map;
 
     public MapStream(Map<K, V> map) {

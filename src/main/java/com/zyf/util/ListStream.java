@@ -317,6 +317,26 @@ public class ListStream<T> {
 
     //  zip(other): 将两个列表的元素按位置配对，生成一个Pair的列表。
 
+    public <U> ListPair<T, U, Pair<T, U>> zip(Iterable<U> other) {
+        Objects.requireNonNull(other, "other cannot be null");
+        return ListPair.of(() -> new Iterator<>() {
+            final Iterator<T> it1 = source.iterator();
+            final Iterator<U> it2 = other.iterator();
+
+            @Override
+            public boolean hasNext() {
+                return it1.hasNext() && it2.hasNext();
+            }
+
+            @Override
+            public Pair<T, U> next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                return Pair.of(it1.next(), it2.next());
+            }
+        });
+    }
 
     //  unzip(): 将一个Pair列表解构为两个列表（第一个元素一个列表，第二个元素一个列表）。
     // ====================================================================================
