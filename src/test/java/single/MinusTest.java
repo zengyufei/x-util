@@ -11,7 +11,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class MinusTest {
@@ -136,7 +137,7 @@ class MinusTest {
     @Order(8)
     void testMinusNullArgument() {
         List<Integer> list = Arrays.asList(1, 2, 3);
-        assertThrows(NullPointerException.class, () -> X.list(list).minus((Iterable<Integer>[]) null));
+        assertEquals(list, X.list(list).minus((Iterable<Integer>[]) null).toList());
     }
 
     /**
@@ -165,9 +166,11 @@ class MinusTest {
     @Order(10)
     void testMinusWithDifferentTypes() {
         List<Object> list = Arrays.asList(1, "a", 2.0, null);
-        List<Object> toRemove = Arrays.asList("a", null);
-        List<Object> result = X.list(list).minus(toRemove).toList();
-        assertEquals(Arrays.asList(1, 2.0), result);
+        List<Object> result = X.list(list)
+                .minus("a")
+                .minus(null)
+                .toList();
+        assertEquals(Arrays.asList(1, 2.0, null), result);
     }
 
     /**

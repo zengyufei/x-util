@@ -119,7 +119,7 @@ class FilterIndexedsTest {
     void testFilterIndexedsWithNullElements() {
         List<Integer> list = Arrays.asList(1, null, 3, null, 5);
         List<Integer> result = X.list(list).filterIndexeds((idx, v) -> v == null && idx % 2 == 1).toList();
-        assertEquals(Collections.singletonList(null), result);
+        assertEquals(Arrays.asList(null, null), result);
     }
 
     /**
@@ -150,7 +150,7 @@ class FilterIndexedsTest {
     void testFilterIndexedsWithDifferentTypes() {
         List<Object> list = Arrays.asList(1, "a", 2.0, null, "b");
         List<Object> result = X.list(list).filterIndexeds((idx, v) -> idx % 2 == 0 && v instanceof String).toList();
-        assertEquals(Collections.emptyList(), result);
+        assertEquals(Collections.singletonList("b"), result);
     }
 
     /**

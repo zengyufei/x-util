@@ -71,7 +71,7 @@ class LastTest {
     void testLastWithPredicate() {
         List<Integer> list = Arrays.asList(5, 15, 25, 12);
         int last = X.list(list).last(i -> i > 10);
-        assertEquals(25, last);
+        assertEquals(12, last);
     }
 
     /**

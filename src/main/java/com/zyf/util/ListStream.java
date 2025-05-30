@@ -3,7 +3,6 @@ package com.zyf.util;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.*;
 import java.util.stream.Collector;
 
@@ -174,6 +173,9 @@ public class ListStream<T> {
     }
 
     public ListStream<T> skip(int n) {
+        if (n < 0) {
+            return this;
+        }
         return of(createFilteredIterable((index, elem) -> index + 1 > n));
     }
 
@@ -246,6 +248,9 @@ public class ListStream<T> {
     }
 
     public ListStream<T> limit(int n) {
+        if (n < 0) {
+            return this;
+        }
         return of(createFilteredIterable((index, elem) -> index + 1 <= n));
     }
 
@@ -430,7 +435,7 @@ public class ListStream<T> {
     //  distinct(): 返回一个新列表，包含所有唯一的元素（基于equals()）。
 
     public ListStream<T> distinct() {
-        Set<Object> seen = ConcurrentHashMap.newKeySet();
+        Set<Object> seen = new HashSet<>();
         return of(createFilteredIterable(elem -> {
             if (seen.contains(elem)) {
                 return false;
@@ -443,7 +448,7 @@ public class ListStream<T> {
     //  distinctBy { selector }: 返回一个新列表，通过给定选择器函数返回的键来判断唯一性。
 
     public ListStream<T> distinct(Function<T, ?> keyExtractor) {
-        Set<Object> seen = ConcurrentHashMap.newKeySet();
+        Set<Object> seen = new HashSet<>();
         return of(createFilteredIterable(elem -> {
             if (seen.contains(keyExtractor.apply(elem))) {
                 return false;
@@ -472,9 +477,6 @@ public class ListStream<T> {
 
             public R next() {
                 final T next = iterator.next();
-                if (next == null) {
-                    return null;
-                }
                 return mapper.apply(next);
             }
         });
@@ -910,7 +912,7 @@ public class ListStream<T> {
     }
 
     public final BigDecimal averageBigDecimal() {
-        BigDecimal total = new BigDecimal("0");
+        BigDecimal total = new BigDecimal("0.0");
         BigDecimal count = BigDecimal.ZERO;
 
         for (final T element : source) {
@@ -1981,13 +1983,14 @@ public class ListStream<T> {
 
     @SafeVarargs
     public final ListStream<T> minus(Iterable<T>... elementsToRemove) {
-        Objects.requireNonNull(elementsToRemove, "elementsToRemove cannot be null");
-
         // 将所有要移除的元素收集到一个Set中，以便高效查找
         Set<T> removalSet = new HashSet<>();
-        for (Iterable<T> iterable : elementsToRemove) {
-            for (T item : iterable) {
-                removalSet.add(item);
+
+        if (elementsToRemove != null) {
+            for (Iterable<T> iterable : elementsToRemove) {
+                for (T item : iterable) {
+                    removalSet.add(item);
+                }
             }
         }
 
@@ -2095,7 +2098,7 @@ public class ListStream<T> {
         return ListStream.of(() -> new Iterator<>() {
             final Iterator<T> sourceIterator = source.iterator();
             // 使用 Deque 作为滑动窗口的内部存储，以便高效地添加和移除元素
-            final ArrayDeque<T> window = new ArrayDeque<>();
+            final Deque<T> window = new LinkedList<>();
             int currentWindowIndex = 0; // 记录当前窗口的起始索引（对于完整的窗口）
             boolean hasNextComputed = false;
             boolean hasNextResult = false;
@@ -2126,7 +2129,8 @@ public class ListStream<T> {
                 while (sourceIterator.hasNext() || (partialWindows && !window.isEmpty())) {
                     // 如果窗口大小不足，先填充窗口
                     while (sourceIterator.hasNext() && window.size() < size) {
-                        window.addLast(sourceIterator.next());
+                        final T next = sourceIterator.next();
+                        window.addLast(next);
                     }
 
                     // 检查是否能形成完整窗口
@@ -2186,6 +2190,8 @@ public class ListStream<T> {
 
     public Tuple2<List<T>, List<T>> partitionTuple2(Predicate<T>... predicates) {
         Tuple2<List<T>, List<T>> parts = new Tuple2<>();
+        parts.t1 = new ArrayList<>();
+        parts.t2 = new ArrayList<>();
         for (T t : source) {
             if (Arrays.stream(predicates).allMatch(predicate -> predicate.test(t))) {
                 parts.t1.add(t);

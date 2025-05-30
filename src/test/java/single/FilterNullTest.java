@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class FilterNullsTest {
+class FilterNullTest {
 
     /**
      * 测试目的：验证filterNulls对普通集合的过滤。
@@ -28,8 +28,8 @@ class FilterNullsTest {
     @Order(1)
     void testFilterNullsNormal() {
         List<Integer> list = Arrays.asList(1, null, 3, null, 5);
-        List<Integer> result = X.list(list).filterNulls().toList();
-        assertEquals(Arrays.asList(1, 3, 5), result);
+        List<Integer> result = X.list(list).filterNull().toList();
+        assertEquals(Arrays.asList(null, null), result);
     }
 
     /**
@@ -43,7 +43,7 @@ class FilterNullsTest {
     @Order(2)
     void testFilterNullsEmpty() {
         List<Integer> list = Collections.emptyList();
-        List<Integer> result = X.list(list).filterNulls().toList();
+        List<Integer> result = X.list(list).filterNull().toList();
         assertTrue(result.isEmpty());
     }
 
@@ -58,8 +58,8 @@ class FilterNullsTest {
     @Order(3)
     void testFilterNullsAllNull() {
         List<Integer> list = Arrays.asList(null, null, null);
-        List<Integer> result = X.list(list).filterNulls().toList();
-        assertTrue(result.isEmpty());
+        List<Integer> result = X.list(list).filterNull().toList();
+        assertTrue(!result.isEmpty());
     }
 
     /**
@@ -73,8 +73,8 @@ class FilterNullsTest {
     @Order(4)
     void testFilterNullsAllNonNull() {
         List<Integer> list = Arrays.asList(1, 2, 3);
-        List<Integer> result = X.list(list).filterNulls().toList();
-        assertEquals(list, result);
+        List<Integer> result = X.list(list).filterNull().toList();
+        assertTrue(result.isEmpty());
     }
 
     /**
@@ -88,8 +88,8 @@ class FilterNullsTest {
     @Order(5)
     void testFilterNullsWithDifferentTypes() {
         List<Object> list = Arrays.asList(1, "a", null, 2.0, null);
-        List<Object> result = X.list(list).filterNulls().toList();
-        assertEquals(Arrays.asList(1, "a", 2.0), result);
+        List<Object> result = X.list(list).filterNull().toList();
+        assertEquals(Arrays.asList(null, null), result);
     }
 
     /**
@@ -106,8 +106,8 @@ class FilterNullsTest {
         List<Integer> list = new ArrayList<>(Collections.nCopies(size, 1));
         list.set(0, null);
         list.set(size - 1, null);
-        List<Integer> result = X.list(list).filterNulls().toList();
-        assertEquals(size - 2, result.size());
+        List<Integer> result = X.list(list).filterNull().toList();
+        assertEquals(2, result.size());
     }
 
     /**
@@ -120,7 +120,7 @@ class FilterNullsTest {
     @Test
     @Order(7)
     void testFilterNullsOnNullList() {
-        List<Integer> result = X.list((List<Integer>) null).filterNulls().toList();
+        List<Integer> result = X.list((List<Integer>) null).filterNull().toList();
         assertTrue(result.isEmpty());
     }
 }

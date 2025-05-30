@@ -50,7 +50,7 @@ class LastOrNullTest {
     void testLastOrNullWithPredicate() {
         List<Integer> list = Arrays.asList(5, 15, 25, 12);
         Integer last = X.list(list).lastOrNull(i -> i > 10);
-        assertEquals(25, last);
+        assertEquals(12, last);
     }
 
     @Test

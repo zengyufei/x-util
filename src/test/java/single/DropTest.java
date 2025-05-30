@@ -99,7 +99,7 @@ class DropTest {
     @Order(6)
     void testDropNegative() {
         List<Integer> list = Arrays.asList(1, 2, 3);
-        assertThrows(IllegalArgumentException.class, () -> X.list(list).drop(-1).toList());
+        assertEquals(list, X.list(list).drop(-1).toList());
     }
 
     /**

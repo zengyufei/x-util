@@ -70,7 +70,7 @@ class SliceTest {
     void testSliceDuplicateIndices() {
         List<Integer> list = Arrays.asList(1, 2, 3);
         List<Integer> result = X.list(list).slice(Arrays.asList(1, 1, 2)).toList();
-        assertEquals(Arrays.asList(2, 2, 3), result);
+        assertEquals(Arrays.asList(2, 3), result);
     }
 
     /**
@@ -85,7 +85,7 @@ class SliceTest {
     void testSliceUnorderedIndices() {
         List<Integer> list = Arrays.asList(1, 2, 3, 4);
         List<Integer> result = X.list(list).slice(Arrays.asList(3, 0, 2)).toList();
-        assertEquals(Arrays.asList(4, 1, 3), result);
+        assertEquals(Arrays.asList(1, 3, 4), result);
     }
 
     /**

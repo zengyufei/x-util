@@ -134,7 +134,7 @@ class AverageTest {
     void testAverageBigDecimal() {
         List<Number> list = Arrays.asList(1, 2, 3);
         BigDecimal avg = X.list(list).averageBigDecimal();
-        assertEquals(new BigDecimal("2"), avg);
+        assertEquals(new BigDecimal("2.00"), avg);
     }
 
     /**
@@ -151,7 +151,7 @@ class AverageTest {
         assertEquals(0.0, X.list(list).averageDouble());
         assertEquals(0, X.list(list).averageInt());
         assertEquals(0L, X.list(list).averageLong());
-        assertEquals(BigDecimal.ZERO, X.list(list).averageBigDecimal());
+        assertEquals(new BigDecimal("0.0"), X.list(list).averageBigDecimal());
     }
 
     /**
@@ -234,6 +234,6 @@ class AverageTest {
         assertEquals(0.0, X.list(null).averageDouble());
         assertEquals(0, X.list(null).averageInt());
         assertEquals(0L, X.list(null).averageLong());
-        assertEquals(BigDecimal.ZERO, X.list(null).averageBigDecimal());
+        assertEquals(new BigDecimal("0.0"), X.list(null).averageBigDecimal());
     }
 }

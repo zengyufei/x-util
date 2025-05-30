@@ -6,10 +6,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -106,7 +103,7 @@ class ShuffledTest {
     @Order(6)
     void testShuffledWithExtremeValues() {
         int size = 10000;
-        List<Integer> list = Collections.nCopies(size, 1);
+        List<Integer> list = new ArrayList<>(Collections.nCopies(size, 1));
         List<Integer> shuffled = X.list(list).shuffled().toList();
         assertEquals(list.size(), shuffled.size());
     }

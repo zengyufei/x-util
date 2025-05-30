@@ -26,9 +26,11 @@ class FilterIsInstanceTest {
     @Test
     @Order(1)
     void testFilterIsInstanceNormal() {
-        List<Object> list = Arrays.asList(1, "a", 2.0, null, "b");
-        List<String> result = X.list(list).filterIsInstance(String.class).toList();
-        assertEquals(Arrays.asList("a", "b"), result);
+        List<Object> list = Arrays.asList(1, "a", 2.0, null, "b", 300L);
+        assertEquals(Arrays.asList("a", "b"), X.list(list).filterIsInstance(String.class).toList());
+        assertEquals(Arrays.asList(1), X.list(list).filterIsInstance(Integer.class).toList());
+        assertEquals(Arrays.asList(2.0), X.list(list).filterIsInstance(Double.class).toList());
+        assertEquals(Arrays.asList(300L), X.list(list).filterIsInstance(Long.class).toList());
     }
 
     /**
@@ -134,7 +136,7 @@ class FilterIsInstanceTest {
     @Test
     @Order(8)
     void testFilterIsInstanceOnNullList() {
-        List<String> result = X.list((List<Object>) null).filterIsInstance(String.class).toList();
+        List<String> result = X.list(null).filterIsInstance(String.class).toList();
         assertTrue(result.isEmpty());
     }
 

@@ -97,9 +97,11 @@ class SortedTest {
     @Order(8)
     void testSortedByKeyAscDesc() {
         List<String> list = Arrays.asList("a", "bbb", "cc");
+
         List<String> asc = X.list(list).sort(String::length, Sort.Asc).toList();
-        List<String> desc = X.list(list).sort(String::length, Sort.Desc).toList();
         assertEquals(Arrays.asList("a", "cc", "bbb"), asc);
+
+        List<String> desc = X.list(list).sort(String::length, Sort.Desc).toList();
         assertEquals(Arrays.asList("bbb", "cc", "a"), desc);
     }
 
@@ -110,9 +112,11 @@ class SortedTest {
     @Order(9)
     void testSortedByKeyWithNulls() {
         List<String> list = Arrays.asList("a", null, "bb");
+
         List<String> nullLast = X.list(list).sort(s -> s, Sort.Asc, Sort.NullLast).toList();
-        List<String> nullFirst = X.list(list).sort(s -> s, Sort.Asc, Sort.NullFirst).toList();
         assertEquals(Arrays.asList("a", "bb", null), nullLast);
+
+        List<String> nullFirst = X.list(list).sort(s -> s, Sort.Asc, Sort.NullFirst).toList();
         assertEquals(Arrays.asList(null, "a", "bb"), nullFirst);
     }
 
@@ -123,10 +127,12 @@ class SortedTest {
     @Order(10)
     void testSortAscSortDesc() {
         List<String> list = Arrays.asList("a", "bbb", "cc");
-        List<String> asc = X.list(list).sortAsc(String::length).toList();
+
         List<String> desc = X.list(list).sortDesc(String::length).toList();
-        assertEquals(Arrays.asList("a", "cc", "bbb"), asc);
         assertEquals(Arrays.asList("bbb", "cc", "a"), desc);
+
+        List<String> asc = X.list(list).sortAsc(String::length).toList();
+        assertEquals(Arrays.asList("a", "cc", "bbb"), asc);
     }
 
     /**
@@ -142,9 +148,7 @@ class SortedTest {
                     // 转换为 char
                     char ch = e.charAt(0);
                     // 获取数字值
-                    int num = ch - '0';
-                    System.out.println(num);
-                    return num;
+                    return ch - '0';
                 }, Sort.Asc)
         ).toList();
         assertEquals(Arrays.asList("a", "b", "ab", "abc"), sorted);

@@ -11,7 +11,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TakeTest {
@@ -102,7 +103,7 @@ class TakeTest {
     @Order(6)
     void testTakeNegative() {
         List<Integer> list = Arrays.asList(1, 2, 3);
-        assertThrows(IllegalArgumentException.class, () -> X.list(list).take(-1).toList());
+        assertEquals(list, X.list(list).take(-1).toList());
     }
 
     /**

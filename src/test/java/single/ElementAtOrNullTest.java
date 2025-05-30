@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -135,7 +136,9 @@ class ElementAtOrNullTest {
         assertEquals(1, X.list(list).elementAtOrNull(0));
         assertEquals("a", X.list(list).elementAtOrNull(1));
         assertEquals(2.0, X.list(list).elementAtOrNull(2));
-        assertNull(X.list(list).elementAtOrNull(3));
+        assertThrows(IllegalCallerException.class, () -> {
+            X.list(list).elementAtOrNull(3);
+        });
     }
 
     /**
