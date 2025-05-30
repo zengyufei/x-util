@@ -37,7 +37,9 @@ public class ReduceTest {
         List<Integer> my = X.list(myList)
                 .isNotNull(User::getAge)
                 .map(User::getAge)
-                .reduce(ArrayList::new, ArrayList::add);
+                .reduce(ArrayList::new, (l, ele) -> {
+                    l.add(ele);
+                });
 
         Assertions.assertEquals(jdk, my);
     }
@@ -67,7 +69,9 @@ public class ReduceTest {
 
         List<Integer> my = X.list(myList)
                 .isNotNull(User::getAge)
-                .reduce(ArrayList::new, User::getAge, ArrayList::add);
+                .reduce(ArrayList::new, User::getAge, (l, ele) -> {
+                    l.add(ele);
+                });
 
         for (Integer integer : my) {
             assert jdk.contains(integer);

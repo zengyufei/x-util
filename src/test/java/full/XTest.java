@@ -7,10 +7,7 @@ import com.zyf.util.X;
 import full.test.entity.Role;
 import full.test.entity.User;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class XTest {
@@ -87,7 +84,7 @@ public class XTest {
                 .count();
 
         X.list(myList)
-                .findFirst();
+                .first();
 
         List<List<Integer>> list = new ArrayList<>();
         list.add(X.asList(1, 2, 3, 4, 5));
@@ -195,13 +192,77 @@ public class XTest {
 
         X.list(myList)
                 .isNotNull(User::getAge)
-                .map(User::getAge)
-                .reduce(ArrayList::new, ArrayList::add);
-
+                .reduce(() -> 0, User::getAge, Integer::sum);
 
         X.list(myList)
                 .isNotNull(User::getAge)
-                .reduce(ArrayList::new, User::getAge, ArrayList::add);
+                .reduce(ArrayList::new, User::getAge, (l, ele) -> {
+                    l.add(ele);
+                });
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .map(User::getAge)
+                .reduce(() -> 0, Integer::sum);
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .map(User::getAge)
+                .reduce(ArrayList::new, (l, ele) -> {
+                    l.add(ele);
+                });
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .reduceList(User::getAge, (l, ele) -> {
+                    l.add(ele);
+                });
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .reduceList(User::getAge);
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .reduceSet(User::getAge, Set::add);
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .reduceSet(User::getAge);
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .reduceIndexed(() -> 0, User::getAge, (index, a, b) -> a + b);
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .reduceIndexed(ArrayList::new, User::getAge, (index, l, ele) -> {
+                    l.add(ele);
+                });
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .map(User::getAge)
+                .reduceIndexed(() -> 0, (index, a, b) -> a + b);
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .map(User::getAge)
+                .reduceIndexed(ArrayList::new, (index, l, ele) -> {
+                    l.add(ele);
+                });
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .reduceIndexedList(User::getAge, (index, l, ele) -> {
+                    l.add(ele);
+                });
+
+        X.list(myList)
+                .isNotNull(User::getAge)
+                .reduceIndexedSet(User::getAge, (index, s, ele) -> {
+                    s.add(ele);
+                });
 
 
         X.list(myList)

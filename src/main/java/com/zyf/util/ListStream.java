@@ -318,7 +318,7 @@ public class ListStream<T> {
     //  zip(other): 将两个列表的元素按位置配对，生成一个Pair的列表。
 
     public <U> ListPair<T, U, Pair<T, U>> zip(Iterable<U> other) {
-        Objects.requireNonNull(other, "other cannot be null");
+        Objects.requireNonNull(other, "list cannot be null");
         return ListPair.of(() -> new Iterator<>() {
             final Iterator<T> it1 = source.iterator();
             final Iterator<U> it2 = other.iterator();
@@ -339,6 +339,8 @@ public class ListStream<T> {
     }
 
     //  unzip(): 将一个Pair列表解构为两个列表（第一个元素一个列表，第二个元素一个列表）。
+
+
     // ====================================================================================
     // ====================================================================================
 
@@ -346,13 +348,231 @@ public class ListStream<T> {
     // ================================ 聚合 (Aggregating / Reducing)  ==================================
     // ====================================================================================
     //  reduce { acc, value -> operation }: 从第一个元素开始，将元素累计起来，每次使用上一次的累计值和当前元素进行操作。
+
+
+    public <S, E, R> R reduce(Supplier<R> supplier, Function<T, E> func, BiFunction<R, E, R> function) {
+        R r = supplier.get();
+        for (T t : source) {
+            E e = func.apply(t);
+            r = function.apply(r, e);
+        }
+        return r;
+    }
+
+    public <S, E, R> R reduce(Supplier<R> supplier, Function<T, E> func, BiConsumer<R, E> consumer) {
+        R r = supplier.get();
+        for (T t : source) {
+            E e = func.apply(t);
+            consumer.accept(r, e);
+        }
+        return r;
+    }
+
+    public <R> R reduce(Supplier<R> func, BiFunction<R, T, R> function) {
+        R r = func.get();
+        for (T t : source) {
+            r = function.apply(r, t);
+        }
+        return r;
+    }
+
+    public <R> R reduce(Supplier<R> func, BiConsumer<R, T> consumer) {
+        R r = func.get();
+        for (T t : source) {
+            consumer.accept(r, t);
+        }
+        return r;
+    }
+
+    public <E, R> List<R> reduceList(Function<T, E> func, BiConsumer<List<R>, E> consumer) {
+        List<R> rs = new ArrayList<>();
+        for (T t : source) {
+            E e = func.apply(t);
+            consumer.accept(rs, e);
+        }
+        return rs;
+    }
+
+    public <R> List<R> reduceList(Function<T, R> func) {
+        List<R> rs = new ArrayList<>();
+        for (T t : source) {
+            R e = func.apply(t);
+            rs.add(e);
+        }
+        return rs;
+    }
+
+
+    public <E, R> Set<R> reduceSet(Function<T, E> func, BiConsumer<Set<R>, E> consumer) {
+        Set<R> rs = new HashSet<>();
+        for (T t : source) {
+            E e = func.apply(t);
+            consumer.accept(rs, e);
+        }
+        return rs;
+    }
+
+    public <R> Set<R> reduceSet(Function<T, R> func) {
+        Set<R> rs = new HashSet<>();
+        for (T t : source) {
+            R e = func.apply(t);
+            rs.add(e);
+        }
+        return rs;
+    }
+
     //  reduceIndexed { index, acc, value -> operation }: 类似reduce，但操作函数同时接收元素的索引。
+
+
+    public <E, R> R reduceIndexed(Supplier<R> supplier, Function<T, E> func, BBiFunction<Integer, R, E, R> function) {
+        R r = supplier.get();
+        int index = 0;
+        for (T t : source) {
+            E e = func.apply(t);
+            r = function.apply(index++, r, e);
+        }
+        return r;
+    }
+
+    public <S, E, R> R reduceIndexed(Supplier<R> supplier, Function<T, E> func, BBiConsumer<Integer, R, E> consumer) {
+        R r = supplier.get();
+        int index = 0;
+        for (T t : source) {
+            E e = func.apply(t);
+            consumer.accept(index++, r, e);
+        }
+        return r;
+    }
+
+    public <R> R reduceIndexed(Supplier<R> func, BBiFunction<Integer, R, T, R> function) {
+        R r = func.get();
+        int index = 0;
+        for (T t : source) {
+            r = function.apply(index++, r, t);
+        }
+        return r;
+    }
+
+    public <R> R reduceIndexed(Supplier<R> func, BBiConsumer<Integer, R, T> consumer) {
+        R r = func.get();
+        int index = 0;
+        for (T t : source) {
+            consumer.accept(index++, r, t);
+        }
+        return r;
+    }
+
+    public <E, R> List<R> reduceIndexedList(Function<T, E> func, BBiConsumer<Integer, List<R>, E> consumer) {
+        List<R> rs = new ArrayList<>();
+        int index = 0;
+        for (T t : source) {
+            E e = func.apply(t);
+            consumer.accept(index++, rs, e);
+        }
+        return rs;
+    }
+
+    public <E, R> Set<R> reduceIndexedSet(Function<T, E> func, BBiConsumer<Integer, Set<R>, E> consumer) {
+        Set<R> rs = new HashSet<>();
+        int index = 0;
+        for (T t : source) {
+            E e = func.apply(t);
+            consumer.accept(index++, rs, e);
+        }
+        return rs;
+    }
+
     //  fold(initial) { acc, value -> operation }: 类似reduce，但可以提供一个初始值。
     //  foldIndexed(initial) { index, acc, value -> operation }: 类似fold，但操作函数同时接收元素的索引。
     //  sum(): 计算数字集合中所有元素的和。
+
+
+    public double sumDouble(Function<T, Number> mapper) {
+        return sumBigDecimal(mapper).doubleValue();
+    }
+
+    public int sumInt(Function<T, Number> mapper) {
+        return sumBigDecimal(mapper).intValue();
+    }
+
+    public long sumLong(Function<T, Number> mapper) {
+        return sumBigDecimal(mapper).longValue();
+    }
+
+    public BigDecimal sumBigDecimal(Function<T, Number> mapper) {
+        BigDecimal sum = new BigDecimal("0.0");
+        for (T t : source) {
+            Number r = mapper.apply(t);
+            sum = sum.add(new BigDecimal(String.valueOf(r)));
+        }
+        return sum;
+    }
+
+    public Double sumDouble() {
+        return sumBigDecimal().doubleValue();
+    }
+
+    public Integer sumInt() {
+        return sumBigDecimal().intValue();
+    }
+
+    public Long sumLong() {
+        return sumBigDecimal().longValue();
+    }
+
+    public BigDecimal sumBigDecimal() {
+        BigDecimal sum = new BigDecimal("0.0");
+        for (T t : source) {
+            if (t instanceof Number) {
+                sum = sum.add(new BigDecimal(String.valueOf(t)));
+            } else {
+                throw new IllegalArgumentException("不是数字,不能计算");
+            }
+        }
+        return sum;
+    }
+
     //  average(): 计算数字集合中所有元素的平均值。
     //  count(): 返回集合中的元素数量。
+
+
+    // 获取大小的方法
+    public long size() {
+        return count();
+    }
+
+    public long count() {
+        if (isEmpty()) {
+            return 0;
+        }
+        // 如果是Collection类型，直接返回size
+        if (source instanceof Collection) {
+            return ((Collection<?>) source).size();
+        }
+        // 否则遍历计数
+        long count = 0;
+        for (T ignored : source) {
+            count++;
+        }
+        return count;
+    }
+
     //  count { predicate }: 返回满足给定条件的元素数量。
+
+    public long count(Predicate<T>... predicates) {
+        if (isEmpty()) {
+            return 0;
+        }
+        // 否则遍历计数
+        long count = 0;
+        for (T e : source) {
+            if (Arrays.stream(predicates).anyMatch(predicate -> predicate.test(e))) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     //  maxOrNull(): 返回集合中的最大元素，如果为空则返回null。
     //  maxByOrNull { selector }: 返回通过选择器函数得到最大值的元素，如果为空则返回null。
     //  maxOfOrNull { selector }: 返回通过选择器函数得到的最大值，如果为空则返回null。
@@ -364,7 +584,72 @@ public class ListStream<T> {
     //  associateBy { keySelector }: 根据键选择器函数创建一个Map，键是选择器返回的值，值是原始元素。
     //  associateWith { valueTransform }: 根据值转换函数创建一个Map，键是原始元素，值是转换函数返回的值。
     //  groupBy { keySelector }: 根据键选择器函数对元素进行分组，返回一个Map，其中键是选择器返回的值，值是一个包含所有具有该键的元素的列表。
+
+
+    /**
+     * 将元素转换为Map，使用keyMapper生成key
+     * 如果有重复的key，将值收集到List中
+     */
+    public <K> MapListStream<K, T> groupBy(Function<T, K> keyMapper) {
+        return groupBy(keyMapper, Function.identity());
+    }
+
+    /**
+     * 将元素转换为Map，使用keyMapper生成key，valueMapper生成value
+     * 如果有重复的key，将值收集到List中
+     */
+    public <K, V> MapListStream<K, V> groupBy(
+            Function<T, K> keyMapper,
+            Function<T, V> valueMapper) {
+        Objects.requireNonNull(keyMapper, "keyMapper cannot be null");
+        Objects.requireNonNull(valueMapper, "valueMapper cannot be null");
+
+        Map<K, List<V>> result = new HashMap<>();
+        if (isEmpty()) {
+            return new MapListStream<>(result);
+        }
+
+        for (T element : source) {
+            if (element != null) {
+                K key = keyMapper.apply(element);
+                V value = valueMapper.apply(element);
+                result.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
+            }
+        }
+        return new MapListStream<>(result);
+    }
+
     //  groupingBy { keySelector }: 返回一个Grouping对象，用于更复杂的聚合操作，如eachCount()、fold()等。
+
+    public <S, A, V> MapStream<S, V> groupingBy(
+            Function<T, S> keyMapper,
+            Collector<T, A, V> collector
+    ) {
+        // 获取collector的组件
+        Supplier<A> supplier = collector.supplier();
+        BiConsumer<A, T> accumulator = collector.accumulator();
+        Function<A, V> finisher = collector.finisher();
+
+        // 同时进行分组和累加，避免两次遍历
+        Map<S, A> accumulatorMap = new HashMap<>();
+        for (T element : source) {
+            S key = keyMapper.apply(element);
+            // 获取或创建累加器
+            A acc = accumulatorMap.computeIfAbsent(key, k -> supplier.get());
+            // 直接累加元素
+            accumulator.accept(acc, element);
+        }
+
+        // 对每个分组应用finisher得到最终结果
+        Map<S, V> finalResult = new HashMap<>(accumulatorMap.size());
+        for (Map.Entry<S, A> entry : accumulatorMap.entrySet()) {
+            finalResult.put(entry.getKey(), finisher.apply(entry.getValue()));
+        }
+
+        return new MapStream<>(finalResult);
+    }
+
+
     // ====================================================================================
     // ====================================================================================
 
@@ -373,23 +658,183 @@ public class ListStream<T> {
     // ====================================================================================
     //  any(): 检查集合是否包含任何元素。
     //  any { predicate }: 检查集合中是否有任何元素满足给定条件。
+
+    @SafeVarargs
+    public final boolean any(Predicate<T>... predicates) {
+        return anyMatch(predicates);
+    }
+
+    @SafeVarargs
+    public final boolean anyMatch(Predicate<T>... predicates) {
+        Iterable<T> filteredIterable = createFilteredIterable(elem ->
+                Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem)));
+        return of(filteredIterable).isNotEmpty();
+    }
+
     //  all { predicate }: 检查集合中是否所有元素都满足给定条件。
+
+    @SafeVarargs
+    public final boolean all(Predicate<T>... predicates) {
+        return allMatch(predicates);
+    }
+
+    @SafeVarargs
+    public final boolean allMatch(Predicate<T>... predicates) {
+        Iterable<T> filteredIterable = createFilteredIterable(elem ->
+                Arrays.stream(predicates).allMatch(predicate -> predicate.test(elem)));
+        return of(filteredIterable).isNotEmpty();
+    }
+
     //  none(): 检查集合是否不包含任何元素。
     //  none { predicate }: 检查集合中是否没有元素满足给定条件。
+
+    @SafeVarargs
+    public final boolean none(Predicate<T>... predicates) {
+        return noneMatch(predicates);
+    }
+
+    @SafeVarargs
+    public final boolean noneMatch(Predicate<T>... predicates) {
+        Iterable<T> filteredIterable = createFilteredIterable(elem ->
+                Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem)));
+        return of(filteredIterable).isEmpty();
+    }
+
     //  contains(element): 检查集合是否包含指定元素。
     //  containsAll(elements): 检查集合是否包含指定集合中的所有元素。
     //  isEmpty(): 检查集合是否为空。
-    //  isNotEmpty(): 检查集合是否不为空。
+
+    public boolean isEmpty() {
+        if (source == null) {
+            return true;
+        }
+
+        // 如果是Collection类型，直接使用isEmpty()方法
+        if (source instanceof Collection) {
+            return ((Collection<?>) source).isEmpty();
+        }
+
+        // 如果是普通Iterable，检查是否有第一个元素
+        return !source.iterator().hasNext();
+    }
+
+    private boolean isNotEmpty() {
+        return !isEmpty();
+    }
+
     //  single(): 返回集合中唯一的元素，如果集合为空或包含多个元素则抛出异常。
     //  singleOrNull(): 返回集合中唯一的元素，如果集合为空或包含多个元素则返回null。
     //  first(): 返回集合中的第一个元素，如果为空则抛出异常。
+
+    public T first() {
+        Iterator<T> iterator = source.iterator();
+        if (iterator.hasNext()) {
+            return iterator.next();
+        } else {
+            throw new IllegalCallerException("无法找到参数");
+        }
+    }
+
     //  first { predicate }: 返回第一个满足条件的元素，如果不存在则抛出异常。
+
+    @SafeVarargs
+    public final T first(Predicate<T>... predicates) {
+        Objects.requireNonNull(predicates);
+        for (final T t : source) {
+            if (Arrays.stream(predicates).allMatch(predicate -> predicate.test(t))) {
+                return t;
+            }
+        }
+        throw new IllegalCallerException("无法找到参数");
+    }
+
+
     //  firstOrNull(): 返回集合中的第一个元素，如果为空则返回null。
+
+    public T firstOrNull() {
+        Iterator<T> iterator = source.iterator();
+        if (iterator.hasNext()) {
+            return iterator.next();
+        } else {
+            return null;
+        }
+    }
+
     //  firstOrNull { predicate }: 返回第一个满足条件的元素，如果不存在则返回null。
+
+    public T firstOrNull(Predicate<T> predicate) {
+        for (final T t : source) {
+            if (predicate.test(t)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
     //  last(): 返回集合中的最后一个元素，如果为空则抛出异常。
+
+    public T last() {
+        Iterator<T> iterator = source.iterator();
+
+        T next = null;
+        while (iterator.hasNext()) {
+            next = iterator.next();
+        }
+
+        if (next == null) {
+            throw new IllegalCallerException("无法找到参数");
+        }
+
+        return next;
+    }
+
     //  last { predicate }: 返回最后一个满足条件的元素，如果不存在则抛出异常。
+
+    @SafeVarargs
+    public final T last(Predicate<T>... predicates) {
+        Objects.requireNonNull(predicates);
+        T next = null;
+        for (final T temp : source) {
+            if (Arrays.stream(predicates).allMatch(predicate -> predicate.test(temp))) {
+                next = temp;
+            }
+        }
+
+        if (next == null) {
+            throw new IllegalCallerException("无法找到参数");
+        }
+
+        return next;
+    }
+
     //  lastOrNull(): 返回集合中的最后一个元素，如果为空则返回null。
+
+    public T lastOrNull() {
+        Iterator<T> iterator = source.iterator();
+
+        T next = null;
+        while (iterator.hasNext()) {
+            next = iterator.next();
+        }
+
+        return next;
+    }
+
     //  lastOrNull { predicate }: 返回最后一个满足条件的元素，如果不存在则返回null。
+
+    @SafeVarargs
+    public final T lastOrNull(Predicate<T>... predicates) {
+        Objects.requireNonNull(predicates);
+        T next = null;
+        for (final T temp : source) {
+            if (Arrays.stream(predicates).allMatch(predicate -> predicate.test(temp))) {
+                next = temp;
+            }
+        }
+
+        return next;
+    }
+
     //  indexOf(element): 返回指定元素的第一个索引，如果不存在则返回-1。
     // ====================================================================================
     // ====================================================================================
@@ -399,11 +844,116 @@ public class ListStream<T> {
     // ====================================================================================
     //  sorted(): 返回一个新列表，按元素的自然顺序升序排序。
     //  sortedDescending(): 返回一个新列表，按元素的自然顺序降序排序。
+
+    public <U extends Comparable<? super U>> ListStream<T> sortDesc(
+            Function<? super T, ? extends U> keyExtractor) {
+        return sort(keyExtractor, Sort.Desc, Sort.NullLast);
+    }
+
     //  sortedBy { selector }: 返回一个新列表，通过选择器函数返回的键进行升序排序。
     //  sortedByDescending { selector }: 返回一个新列表，通过选择器函数返回的键进行降序排序。
+
+
     //  sortedWith(comparator): 返回一个新列表，使用提供的比较器进行排序。
+
+    @SuppressWarnings("unused")
+    public ListStream<T> sort(Comparator<T> comparator) {
+        // 转换为List以进行排序
+        List<T> sortedList = toList();
+        // 执行排序
+        sortedList.sort(comparator);
+        return of(sortedList);
+    }
+
+    public <U extends Comparable<? super U>> ListStream<T> sort(
+            Function<? super T, ? extends U> keyExtractor,
+            Sort order) {
+        return sort(keyExtractor, order, Sort.NullLast);
+    }
+
+    /**
+     * 根据提取的比较键对元素进行排序
+     *
+     * @param keyExtractor 键提取函数
+     * @param order        排序顺序（升序/降序）
+     * @param nullPosition 空值位置（前/后）
+     * @return 排序后的ListStream
+     */
+    public <U extends Comparable<? super U>> ListStream<T> sort(
+            Function<? super T, ? extends U> keyExtractor,
+            Sort order,
+            Sort nullPosition) {
+        Objects.requireNonNull(keyExtractor, "keyExtractor cannot be null");
+        Objects.requireNonNull(order, "order cannot be null");
+        Objects.requireNonNull(nullPosition, "nullPosition cannot be null");
+
+        if (isEmpty()) {
+            return this;
+        }
+
+        SortStream<T> sortStream = new SortStream<>();
+
+        // 转换为List以进行排序
+        List<T> sortedList = toList();
+
+        // 创建比较器
+        Comparator<T> comparator = sortStream.createComparator(keyExtractor, order, nullPosition);
+
+        // 执行排序
+        sortedList.sort(comparator);
+
+        return of(sortedList);
+    }
+
+    /**
+     * 根据提取的比较键对元素进行排序
+     *
+     * @return 排序后的ListStream
+     */
+    @SafeVarargs
+    public final <U extends Comparable<? super U>> ListStream<T> sort(Function<SortStream<T>, Comparator<T>>... streamOperation) {
+
+        if (isEmpty()) {
+            return this;
+        }
+
+        // 转换为List以进行排序
+        List<T> sortedList = toList();
+
+        Comparator<T> comparator = null;
+        for (Function<SortStream<T>, Comparator<T>> comparatorFunction : streamOperation) {
+            if (comparator == null) {
+                comparator = comparatorFunction.apply(new SortStream<>());
+            } else {
+                comparator = comparator.thenComparing(comparatorFunction.apply(new SortStream<>()));
+            }
+        }
+
+        // 执行排序
+        sortedList.sort(comparator);
+
+        return of(sortedList);
+    }
+
+
+    /**
+     * 简化版排序方法 - 升序，空值在最后
+     */
+    public <U extends Comparable<? super U>> ListStream<T> sortAsc(
+            Function<? super T, ? extends U> keyExtractor) {
+        return sort(keyExtractor, Sort.Asc, Sort.NullLast);
+    }
+
     //  shuffled(): 返回一个随机排列的新列表。
     //  reversed(): 返回一个元素顺序颠倒的新列表。
+
+    public ListStream<T> reversed() {
+        // 反转列表
+        List<T> list = toList();
+        Collections.reverse(list);
+        return of(list);
+    }
+
     // ====================================================================================
     // ====================================================================================
 
@@ -411,11 +961,53 @@ public class ListStream<T> {
     // ================================ 转换 (Transforming)  ==================================
     // ====================================================================================
     //  toSet(): 将集合转换为一个Set。
+
+    public Set<T> toSet() {
+        // 如果是Collection类型，直接返回size
+        if (source instanceof Set<T>) {
+            return (Set<T>) source;
+        }
+        Set<T> result = new HashSet<>();
+        source.forEach(result::add);
+        return result;
+    }
+
     //  toList(): 将集合转换为一个List。
+
+    public List<T> toList() {
+        // 如果是Collection类型，直接返回size
+        if (source instanceof List<T>) {
+            return (List<T>) source;
+        }
+        List<T> result = new ArrayList<>();
+        source.forEach(result::add);
+        return result;
+    }
+
     //  toMutableList(): 将集合转换为一个可变的MutableList。
     //  toMutableSet(): 将集合转换为一个可变的MutableSet。
     //  toCollection(destination): 将集合中的所有元素添加到给定的可变集合中。
     //  joinToString(separator = ", ", prefix = "", postfix = "", limit = -1, truncated = "...", transform = null): 将集合中的元素连接成一个字符串。
+
+    public String joining(CharSequence symbol) {
+        return joinToString(symbol);
+    }
+
+    public String joinToString(CharSequence symbol) {
+        StringJoiner sb = new StringJoiner(symbol);
+        for (T t : source) {
+            if (t instanceof CharSequence) {
+                sb.add((CharSequence) t);
+            } else {
+                if (t != null) {
+                    sb.add(t.toString());
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+
     // ====================================================================================
     // ====================================================================================
 
@@ -433,11 +1025,148 @@ public class ListStream<T> {
     // ================================ 其他 (Miscellaneous)  ==================================
     // ====================================================================================
     //  chunked(size): 将集合分解成固定大小的块。
+
+    public void chunked(int size, Consumer<List<T>> consumer) {
+        split(size, consumer);
+    }
+
+    public List<List<T>> chunkedToList(int size) {
+        return splitToList(size);
+    }
+
+    public void split(int size, Consumer<List<T>> consumer) {
+        List<List<T>> parts = new ArrayList<>();
+        int i = 0;
+        List<T> temp = null;
+        for (T t : source) {
+            if (temp == null || i % size == 0) {
+                temp = new ArrayList<>(size);
+                parts.add(temp);
+            }
+            temp.add(t);
+            ++i;
+        }
+
+        for (List<T> part : parts) {
+            consumer.accept(part);
+        }
+    }
+
+    public List<List<T>> splitToList(int size) {
+        List<List<T>> parts = new ArrayList<>();
+        int i = 0;
+        List<T> temp = null;
+        for (T t : source) {
+            if (temp == null || i % size == 0) {
+                temp = new ArrayList<>(size);
+                parts.add(temp);
+            }
+            temp.add(t);
+            ++i;
+        }
+
+        return parts;
+    }
+
+
     //  windowed(size, step = 1, partialWindows = false): 创建滑动窗口。
     //  onEach { action }: 对每个元素执行给定的操作，并返回原始集合。
     //  partition { predicate }: 将集合分成两个列表：一个包含满足条件的元素，另一个包含不满足条件的元素。
+
+    public Tuple2<List<T>, List<T>> partitionTuple2(Predicate<T>... predicates) {
+        Tuple2<List<T>, List<T>> parts = new Tuple2<>();
+        for (T t : source) {
+            if (Arrays.stream(predicates).allMatch(predicate -> predicate.test(t))) {
+                parts.t1.add(t);
+            } else {
+                parts.t2.add(t);
+            }
+        }
+
+        return parts;
+    }
+
+    public List<List<T>> partition(Predicate<T>... predicates) {
+        List<List<T>> parts = new ArrayList<>();
+        parts.add(new ArrayList<>());
+        parts.add(new ArrayList<>());
+        for (T t : source) {
+            if (Arrays.stream(predicates).allMatch(predicate -> predicate.test(t))) {
+                parts.get(0).add(t);
+            } else {
+                parts.get(1).add(t);
+            }
+        }
+
+        return parts;
+    }
+
+    @SafeVarargs
+    public final List<List<T>> partitionEveryOne(Predicate<T>... predicates) {
+        final int length = predicates.length;
+        List<List<T>> parts = new ArrayList<>(length);
+        for (int i = 0; i < length; i++) {
+            parts.add(new ArrayList<>());
+        }
+        for (T t : source) {
+            for (int i = 0; i < predicates.length; i++) {
+                final Predicate<T> predicate = predicates[i];
+                if (predicate.test(t)) {
+                    parts.get(i).add(t);
+                }
+            }
+        }
+
+        return parts;
+    }
+
     // ====================================================================================
     // ====================================================================================
+
+    /**
+     * 将元素转换为Map，使用keyMapper生成key
+     * 如果有重复的key，保留最后一个值
+     */
+    public <K> Map<K, T> toMap(Function<T, K> keyMapper) {
+        return toMap(keyMapper, Function.identity());
+    }
+
+    /**
+     * 将元素转换为Map，使用keyMapper生成key，valueMapper生成value
+     * 如果有重复的key，保留最后一个值
+     */
+    public <K, V> Map<K, V> toMap(Function<T, K> keyMapper, Function<T, V> valueMapper) {
+        return toMap(keyMapper, valueMapper, (v1, v2) -> v2);
+    }
+
+    /**
+     * 将元素转换为Map，使用keyMapper生成key，valueMapper生成value
+     * 如果有重复的key，使用mergeFunction合并值
+     */
+    public <K, V> Map<K, V> toMap(
+            Function<T, K> keyMapper,
+            Function<T, V> valueMapper,
+            BinaryOperator<V> mergeFunction) {
+        Objects.requireNonNull(keyMapper, "keyMapper cannot be null");
+        Objects.requireNonNull(valueMapper, "valueMapper cannot be null");
+        Objects.requireNonNull(mergeFunction, "mergeFunction cannot be null");
+
+        if (isEmpty()) {
+            return new HashMap<>();
+        }
+
+        Map<K, V> result = new HashMap<>();
+        for (T element : source) {
+            if (element != null) {
+                K key = keyMapper.apply(element);
+                if (key != null) {
+                    V value = valueMapper.apply(element);
+                    result.merge(key, value, mergeFunction);
+                }
+            }
+        }
+        return result;
+    }
 
 
     public ListStream<T> add(T t) {
@@ -528,54 +1257,6 @@ public class ListStream<T> {
         });
     }
 
-    public ListStream<T> reversed() {
-        // 反转列表
-        List<T> list = toList();
-        Collections.reverse(list);
-        return of(list);
-    }
-
-    // 过滤或的实现
-    @SafeVarargs
-    @SuppressWarnings("unused")
-    public final boolean anyMatch(Predicate<T>... predicates) {
-        Iterable<T> filteredIterable = createFilteredIterable(elem ->
-                Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem)));
-        return of(filteredIterable).isNotEmpty();
-    }
-
-    // 过滤或的实现
-    @SafeVarargs
-    @SuppressWarnings("unused")
-    public final boolean noneMatch(Predicate<T>... predicates) {
-        Iterable<T> filteredIterable = createFilteredIterable(elem ->
-                Arrays.stream(predicates).anyMatch(predicate -> predicate.test(elem)));
-        return of(filteredIterable).isEmpty();
-    }
-
-    // 获取第一个元素
-    public T findFirst() {
-        Iterator<T> iterator = source.iterator();
-        if (iterator.hasNext()) {
-            return iterator.next();
-        }
-        return null;
-    }
-
-
-    public String joining(CharSequence symbol) {
-        StringJoiner sb = new StringJoiner(symbol);
-        for (T t : source) {
-            if (t instanceof CharSequence) {
-                sb.add((CharSequence) t);
-            } else {
-                if (t != null) {
-                    sb.add(t.toString());
-                }
-            }
-        }
-        return sb.toString();
-    }
 
     @SafeVarargs
     public final ListStream<T> isNull(Function<T, ?>... getters) {
@@ -744,112 +1425,6 @@ public class ListStream<T> {
     }
 
     /**
-     * 将元素转换为Map，使用keyMapper生成key
-     * 如果有重复的key，保留最后一个值
-     */
-    public <K> Map<K, T> toMap(Function<T, K> keyMapper) {
-        return toMap(keyMapper, Function.identity());
-    }
-
-    /**
-     * 将元素转换为Map，使用keyMapper生成key，valueMapper生成value
-     * 如果有重复的key，保留最后一个值
-     */
-    public <K, V> Map<K, V> toMap(Function<T, K> keyMapper, Function<T, V> valueMapper) {
-        return toMap(keyMapper, valueMapper, (v1, v2) -> v2);
-    }
-
-    /**
-     * 将元素转换为Map，使用keyMapper生成key，valueMapper生成value
-     * 如果有重复的key，使用mergeFunction合并值
-     */
-    public <K, V> Map<K, V> toMap(
-            Function<T, K> keyMapper,
-            Function<T, V> valueMapper,
-            BinaryOperator<V> mergeFunction) {
-        Objects.requireNonNull(keyMapper, "keyMapper cannot be null");
-        Objects.requireNonNull(valueMapper, "valueMapper cannot be null");
-        Objects.requireNonNull(mergeFunction, "mergeFunction cannot be null");
-
-        if (isEmpty()) {
-            return new HashMap<>();
-        }
-
-        Map<K, V> result = new HashMap<>();
-        for (T element : source) {
-            if (element != null) {
-                K key = keyMapper.apply(element);
-                if (key != null) {
-                    V value = valueMapper.apply(element);
-                    result.merge(key, value, mergeFunction);
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * 将元素转换为Map，使用keyMapper生成key
-     * 如果有重复的key，将值收集到List中
-     */
-    public <K> MapListStream<K, T> groupBy(Function<T, K> keyMapper) {
-        return groupBy(keyMapper, Function.identity());
-    }
-
-    /**
-     * 将元素转换为Map，使用keyMapper生成key，valueMapper生成value
-     * 如果有重复的key，将值收集到List中
-     */
-    public <K, V> MapListStream<K, V> groupBy(
-            Function<T, K> keyMapper,
-            Function<T, V> valueMapper) {
-        Objects.requireNonNull(keyMapper, "keyMapper cannot be null");
-        Objects.requireNonNull(valueMapper, "valueMapper cannot be null");
-
-        Map<K, List<V>> result = new HashMap<>();
-        if (isEmpty()) {
-            return new MapListStream<>(result);
-        }
-
-        for (T element : source) {
-            if (element != null) {
-                K key = keyMapper.apply(element);
-                V value = valueMapper.apply(element);
-                result.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
-            }
-        }
-        return new MapListStream<>(result);
-    }
-
-    public <S, A, V> MapStream<S, V> groupingBy(
-            Function<T, S> keyMapper,
-            Collector<T, A, V> collector
-    ) {
-        // 获取collector的组件
-        Supplier<A> supplier = collector.supplier();
-        BiConsumer<A, T> accumulator = collector.accumulator();
-        Function<A, V> finisher = collector.finisher();
-
-        // 同时进行分组和累加，避免两次遍历
-        Map<S, A> accumulatorMap = new HashMap<>();
-        for (T element : source) {
-            S key = keyMapper.apply(element);
-            // 获取或创建累加器
-            A acc = accumulatorMap.computeIfAbsent(key, k -> supplier.get());
-            // 直接累加元素
-            accumulator.accept(acc, element);
-        }
-
-        // 对每个分组应用finisher得到最终结果
-        Map<S, V> finalResult = new HashMap<>(accumulatorMap.size());
-        for (Map.Entry<S, A> entry : accumulatorMap.entrySet()) {
-            finalResult.put(entry.getKey(), finisher.apply(entry.getValue()));
-        }
-
-        return new MapStream<>(finalResult);
-    }
-
-    /**
      * 将元素转换为LinkedHashMap，保持插入顺序
      */
     public <K> Map<K, T> toLinkedMap(Function<T, K> keyMapper) {
@@ -883,155 +1458,6 @@ public class ListStream<T> {
     }
 
 
-    public double sumDouble(Function<T, Number> mapper) {
-        return sumBigDecimal(mapper).doubleValue();
-    }
-
-    public int sumInt(Function<T, Number> mapper) {
-        return sumBigDecimal(mapper).intValue();
-    }
-
-    public long sumLong(Function<T, Number> mapper) {
-        return sumBigDecimal(mapper).longValue();
-    }
-
-    public BigDecimal sumBigDecimal(Function<T, Number> mapper) {
-        BigDecimal sum = new BigDecimal("0.0");
-        for (T t : source) {
-            Number r = mapper.apply(t);
-            sum = sum.add(new BigDecimal(String.valueOf(r)));
-        }
-        return sum;
-    }
-
-    public Double sumDouble() {
-        return sumBigDecimal().doubleValue();
-    }
-
-    public Integer sumInt() {
-        return sumBigDecimal().intValue();
-    }
-
-    public Long sumLong() {
-        return sumBigDecimal().longValue();
-    }
-
-    public BigDecimal sumBigDecimal() {
-        BigDecimal sum = new BigDecimal("0.0");
-        for (T t : source) {
-            if (t instanceof Number) {
-                sum = sum.add(new BigDecimal(String.valueOf(t)));
-            } else {
-                throw new IllegalArgumentException("不是数字,不能计算");
-            }
-        }
-        return sum;
-    }
-
-    // 排序方法
-    @SuppressWarnings("unused")
-    public ListStream<T> sort(Comparator<T> comparator) {
-        // 转换为List以进行排序
-        List<T> sortedList = toList();
-        // 执行排序
-        sortedList.sort(comparator);
-        return of(sortedList);
-    }
-
-    /**
-     * 根据提取的比较键对元素进行排序
-     *
-     * @param keyExtractor 键提取函数
-     * @param order        排序顺序（升序/降序）
-     * @return 排序后的ListStream
-     */
-    public <U extends Comparable<? super U>> ListStream<T> sort(
-            Function<? super T, ? extends U> keyExtractor,
-            Sort order) {
-        return sort(keyExtractor, order, Sort.NullLast);
-    }
-
-    /**
-     * 根据提取的比较键对元素进行排序
-     *
-     * @param keyExtractor 键提取函数
-     * @param order        排序顺序（升序/降序）
-     * @param nullPosition 空值位置（前/后）
-     * @return 排序后的ListStream
-     */
-    public <U extends Comparable<? super U>> ListStream<T> sort(
-            Function<? super T, ? extends U> keyExtractor,
-            Sort order,
-            Sort nullPosition) {
-        Objects.requireNonNull(keyExtractor, "keyExtractor cannot be null");
-        Objects.requireNonNull(order, "order cannot be null");
-        Objects.requireNonNull(nullPosition, "nullPosition cannot be null");
-
-        if (isEmpty()) {
-            return this;
-        }
-
-        SortStream<T> sortStream = new SortStream<>();
-
-        // 转换为List以进行排序
-        List<T> sortedList = toList();
-
-        // 创建比较器
-        Comparator<T> comparator = sortStream.createComparator(keyExtractor, order, nullPosition);
-
-        // 执行排序
-        sortedList.sort(comparator);
-
-        return of(sortedList);
-    }
-
-    /**
-     * 根据提取的比较键对元素进行排序
-     *
-     * @return 排序后的ListStream
-     */
-    @SafeVarargs
-    public final <U extends Comparable<? super U>> ListStream<T> sort(Function<SortStream<T>, Comparator<T>>... streamOperation) {
-
-        if (isEmpty()) {
-            return this;
-        }
-
-        // 转换为List以进行排序
-        List<T> sortedList = toList();
-
-        Comparator<T> comparator = null;
-        for (Function<SortStream<T>, Comparator<T>> comparatorFunction : streamOperation) {
-            if (comparator == null) {
-                comparator = comparatorFunction.apply(new SortStream<>());
-            } else {
-                comparator = comparator.thenComparing(comparatorFunction.apply(new SortStream<>()));
-            }
-        }
-
-        // 执行排序
-        sortedList.sort(comparator);
-
-        return of(sortedList);
-    }
-
-
-    /**
-     * 简化版排序方法 - 升序，空值在最后
-     */
-    public <U extends Comparable<? super U>> ListStream<T> sortAsc(
-            Function<? super T, ? extends U> keyExtractor) {
-        return sort(keyExtractor, Sort.Asc, Sort.NullLast);
-    }
-
-    /**
-     * 简化版排序方法 - 降序，空值在最后
-     */
-    public <U extends Comparable<? super U>> ListStream<T> sortDesc(
-            Function<? super T, ? extends U> keyExtractor) {
-        return sort(keyExtractor, Sort.Desc, Sort.NullLast);
-    }
-
     public final ListStream<T> peek(Consumer<T> consumer) {
         return of(() -> new Iterator<>() {
             final Iterator<T> iterator = source.iterator();
@@ -1053,105 +1479,11 @@ public class ListStream<T> {
         return this;
     }
 
-    public <R> R reduce(Supplier<R> func, BiConsumer<R, T> consumer) {
-        R r = func.get();
-        for (T t : source) {
-            consumer.accept(r, t);
-        }
-        return r;
-    }
-
-    public <S, E, R> R reduce(Supplier<R> supplier, Function<T, E> func, BiConsumer<R, E> consumer) {
-        R r = supplier.get();
-        for (T t : source) {
-            E e = func.apply(t);
-            consumer.accept(r, e);
-        }
-        return r;
-    }
 
     public void forEach(Consumer<? super T> action) {
         Objects.requireNonNull(action);
         source.forEach(action);
     }
 
-    public void split(int size, Consumer<List<T>> consumer) {
-        List<List<T>> parts = new ArrayList<>();
-        int i = 0;
-        List<T> temp = null;
-        for (T t : source) {
-            if (temp == null || i % size == 0) {
-                temp = new ArrayList<>(size);
-                parts.add(temp);
-            }
-            temp.add(t);
-            ++i;
-        }
-
-        for (List<T> part : parts) {
-            consumer.accept(part);
-        }
-    }
-
-    private boolean isNotEmpty() {
-        return !isEmpty();
-    }
-
-    // 判断是否为空的方法
-    public boolean isEmpty() {
-        if (source == null) {
-            return true;
-        }
-
-        // 如果是Collection类型，直接使用isEmpty()方法
-        if (source instanceof Collection) {
-            return ((Collection<?>) source).isEmpty();
-        }
-
-        // 如果是普通Iterable，检查是否有第一个元素
-        return !source.iterator().hasNext();
-    }
-
-
-    // 获取大小的方法
-    public long size() {
-        return count();
-    }
-
-    public long count() {
-        if (isEmpty()) {
-            return 0;
-        }
-        // 如果是Collection类型，直接返回size
-        if (source instanceof Collection) {
-            return ((Collection<?>) source).size();
-        }
-        // 否则遍历计数
-        long count = 0;
-        for (T ignored : source) {
-            count++;
-        }
-        return count;
-    }
-
-    public List<T> toList() {
-        // 如果是Collection类型，直接返回size
-        if (source instanceof List<T>) {
-            return (List<T>) source;
-        }
-        List<T> result = new ArrayList<>();
-        source.forEach(result::add);
-        return result;
-    }
-
-    public Set<T> toSet() {
-        // 如果是Collection类型，直接返回size
-        if (source instanceof Set<T>) {
-            return (Set<T>) source;
-        }
-        Set<T> result = new HashSet<>();
-        source.forEach(result::add);
-        return result;
-    }
 
 }

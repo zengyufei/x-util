@@ -29,7 +29,7 @@ public class FindFirstTest {
                 .get();
 
         User my = X.list(myList)
-                .findFirst();
+                .first();
 
         Assertions.assertEquals(jdk, my);
     }
