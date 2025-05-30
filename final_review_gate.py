@@ -3,57 +3,53 @@ import sys
 import os
 
 if __name__ == "__main__":
-    # Try to make stdout unbuffered for more responsive interaction.
-    # This might not work on all platforms or if stdout is not a TTY,
-    # but it's a good practice for this kind of interactive script.
+    # 尝试将标准输出设置为非缓冲模式，以实现更灵敏的交互。
+    # 这在某些平台或非终端环境中可能无效，但推荐这样做。
     try:
         sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
     except Exception:
-        pass # Ignore if unbuffering fails, e.g., in certain environments
+        pass  # 如果失败（例如在某些环境下），则忽略
 
     try:
         sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
     except Exception:
-        pass # Ignore
+        pass  # 同上
 
-    print("--- FINAL REVIEW GATE ACTIVE ---", flush=True)
-    print("AI has completed its primary actions. Awaiting your review or further sub-prompts.", flush=True)
-    print("Type your sub-prompt, or one of: 'TASK_COMPLETE', 'Done', 'Quit', 'q' to signal completion.", flush=True) # MODIFIED
+    print("--- 最终审查入口已激活 ---", flush=True)
+    print("AI 已完成主要任务，正在等待你的审查或补充指令。", flush=True)
+    print("请输入补充指令，或者输入以下任一关键词表示完成：'TASK_COMPLETE', 'Done', 'Quit', 'q'", flush=True)
 
     active_session = True
     while active_session:
         try:
-            # Signal that the script is ready for input.
-            # The AI doesn't need to parse this, but it's good for user visibility.
+            # 显示脚本已准备好接收输入。
             print("REVIEW_GATE_AWAITING_INPUT:", end="", flush=True)
 
             line = sys.stdin.readline()
 
-            if not line:  # EOF
-                print("--- REVIEW GATE: STDIN CLOSED (EOF), EXITING SCRIPT ---", flush=True)
+            if not line:  # 文件结束（EOF）
+                print("--- 审查入口：输入通道关闭（EOF），退出脚本 ---", flush=True)
                 active_session = False
                 break
 
             user_input = line.strip()
 
-            # Check for exit conditions
-            if user_input.upper() in ['TASK_COMPLETE', 'DONE', 'QUIT', 'Q']: # MODIFIED: Empty string no longer exits
-                print(f"--- REVIEW GATE: USER SIGNALED COMPLETION WITH '{user_input.upper()}' ---", flush=True)
+            # 判断退出条件
+            if user_input.upper() in ['TASK_COMPLETE', 'DONE', 'QUIT', 'Q']:
+                print(f"--- 审查入口：用户通过 '{user_input.upper()}' 表示任务完成 ---", flush=True)
                 active_session = False
                 break
-            elif user_input: # If there's any other non-empty input (and not a completion command)
-                # This is the critical line the AI will "listen" for.
+            elif user_input:
+                # AI 将"监听"以下格式的输出
                 print(f"USER_REVIEW_SUB_PROMPT: {user_input}", flush=True)
-            # If user_input was empty (and not a completion command),
-            # the loop simply continues, and "REVIEW_GATE_AWAITING_INPUT:" will be printed again.
-
+            # 如果用户输入为空但不是退出命令，则继续循环等待
         except KeyboardInterrupt:
-            print("--- REVIEW GATE: SESSION INTERRUPTED BY USER (KeyboardInterrupt) ---", flush=True)
+            print("--- 审查入口：用户中断会话（Ctrl+C） ---", flush=True)
             active_session = False
             break
         except Exception as e:
-            print(f"--- REVIEW GATE SCRIPT ERROR: {e} ---", flush=True)
+            print(f"--- 审查入口脚本错误：{e} ---", flush=True)
             active_session = False
             break
 
-    print("--- FINAL REVIEW GATE SCRIPT EXITED ---", flush=True)
+    print("--- 最终审查脚本已退出 ---", flush=True)

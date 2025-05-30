@@ -1,126 +1,196 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
-# AI Agent Protocol: Self-Contained Mandatory Interactive Final Review Loop with Auto-Script Creation (Version 3)
+## AI Agent 协议：自包含强制交互式最终审查循环 + 自动脚本创建（版本 3）
 
-## 0. User Advisory & Safety:
-This is an advanced, experimental rule. It instructs the AI Agent to check for, potentially create, and then execute a Python script (`final_review_gate.py`) in your project's root directory to facilitate an interactive review loop. By using this rule, you acknowledge that the AI will attempt file system operations (read, write, execute) as directed. Ensure the AI's execution environment has appropriate permissions if you expect script auto-creation to work, and be aware of the security implications.
+---
 
-## 1. Core Principle & Context:
-Your primary task processing includes a **mandatory final interactive review stage** driven by user input through a specific Python script (`final_review_gate.py`). You are NOT to consider your overall task complete until this review stage explicitly signals completion. This protocol leverages your known capability to run commands in a sub-terminal (displayed within the chat interface) and read their output.
+### **0. 用户须知与安全提示**
 
-## Phase 0: Ensure `final_review_gate.py` Script Exists
-(This phase is executed ONCE per user request that triggers this overall protocol, or if the script is missing or its content is incorrect.)
+这是一个高级的、实验性的规则。它指示 AI Agent 检查、可能创建、然后执行一个 Python 脚本（`final_review_gate.py`）以启动交互式审查循环。
+使用此规则表示您知晓 AI 将尝试进行文件系统操作（读取、写入、执行）。请确保 AI 的执行环境具有适当权限，并注意相关的安全风险。
 
-1.  **Define Script Details:**
-    * **Script Name:** `final_review_gate.py`
-    * **Target Location:** Directly in the root of the current project/workspace.
-    * **Python Script Content (ensure this exact content is used):**
-        ```python
-        # final_review_gate.py
-        import sys
-        import os
+---
 
-        if __name__ == "__main__":
-            # Try to make stdout unbuffered for more responsive interaction.
-            # This might not work on all platforms or if stdout is not a TTY,
-            # but it's a good practice for this kind of interactive script.
-            try:
-                sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
-            except Exception:
-                pass # Ignore if unbuffering fails, e.g., in certain environments
+### **1. 核心原则与上下文**
 
-            try:
-                sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
-            except Exception:
-                pass # Ignore
+你必须在完成用户的主任务后，进入一个**强制性的最终交互审查阶段**，此阶段由一个指定的 Python 脚本 `final_review_gate.py` 驱动。
+你**不能将任务标记为完成**，除非该脚本明确表示任务已完成。此流程依赖你在聊天窗口中运行终端命令并读取输出的能力。
 
-            print("--- FINAL REVIEW GATE ACTIVE ---", flush=True)
-            print("AI has completed its primary actions. Awaiting your review or further sub-prompts.", flush=True)
-            print("Type your sub-prompt, or one of: 'TASK_COMPLETE', 'Done', 'Quit', 'q' to signal completion.", flush=True) # MODIFIED
-            
-            active_session = True
-            while active_session:
-                try:
-                    # Signal that the script is ready for input.
-                    # The AI doesn't need to parse this, but it's good for user visibility.
-                    print("REVIEW_GATE_AWAITING_INPUT:", end="", flush=True) 
-                    
-                    line = sys.stdin.readline()
-                    
-                    if not line:  # EOF
-                        print("--- REVIEW GATE: STDIN CLOSED (EOF), EXITING SCRIPT ---", flush=True)
-                        active_session = False
-                        break
-                    
-                    user_input = line.strip()
+---
 
-                    # Check for exit conditions
-                    if user_input.upper() in ['TASK_COMPLETE', 'DONE', 'QUIT', 'Q']: # MODIFIED: Empty string no longer exits
-                        print(f"--- REVIEW GATE: USER SIGNALED COMPLETION WITH '{user_input.upper()}' ---", flush=True)
-                        active_session = False
-                        break
-                    elif user_input: # If there's any other non-empty input (and not a completion command)
-                        # This is the critical line the AI will "listen" for.
-                        print(f"USER_REVIEW_SUB_PROMPT: {user_input}", flush=True)
-                    # If user_input was empty (and not a completion command),
-                    # the loop simply continues, and "REVIEW_GATE_AWAITING_INPUT:" will be printed again.
-                    
-                except KeyboardInterrupt:
-                    print("--- REVIEW GATE: SESSION INTERRUPTED BY USER (KeyboardInterrupt) ---", flush=True)
-                    active_session = False
-                    break
-                except Exception as e:
-                    print(f"--- REVIEW GATE SCRIPT ERROR: {e} ---", flush=True)
-                    active_session = False
-                    break
-                    
-            print("--- FINAL REVIEW GATE SCRIPT EXITED ---", flush=True)
-        ```
+## 阶段 0：确保 `final_review_gate.py` 脚本存在
 
-2.  **Ensure Script Existence and Correctness:**
-    a.  Use your file system tools to check if the file `final_review_gate.py` exists in the project root.
-    b.  **If the file `final_review_gate.py` does NOT exist OR if its content does not EXACTLY match the Python script provided in section "Phase 0.1.Python Script Content" (you may need to read the existing file and compare):**
-        i.  You MUST create or overwrite the `final_review_gate.py` file in the project root.
-        ii. The content of this file MUST be *exactly* the Python script content provided above. Ensure all indentation, comments, and lines are preserved perfectly. Use your "create file" or "edit file" tool.
-        iii. After creating/overwriting it, announce: "The `final_review_gate.py` script has been created/updated in the project root with the latest interaction enhancements."
-    c.  **If the file `final_review_gate.py` already exists and its content is correct:** You may skip announcing its creation.
-    d.  If you encounter any errors checking for, reading, or creating/writing the file (e.g., permission issues), you MUST report this to the user. State clearly: "Error managing `final_review_gate.py`: [specific error]. Cannot proceed with interactive review." and then conclude the interaction for the main task as best as you can without this interactive step.
+此阶段在每次用户触发任务时执行一次，如果脚本缺失或内容不正确也将再次执行。
 
-## Phase 1: Primary Task Execution
-1.  Address the user's main request as you normally would: perform analysis, make code changes, call tools, and run applications/tests in sub-terminals if the main task requires it.
-    * **Application Execution Confirmation:** Before attempting to run an entire application (e.g., a web server, a full front-end build, a long-running background process), you MUST ask the user for explicit confirmation. For example: "I am about to run the [application name/command]. Is it okay to proceed, or is it possibly already running?"
-    * This confirmation is NOT required for running individual test scripts, linters, build tools for specific components, or other non-application-level commands necessary for task completion.
-    * If the user indicates an application is already running or denies permission, adapt your strategy accordingly (e.g., focus on tests or specific file executions).
-2.  Leverage your ability to read outputs/errors from these sub-terminals to make iterative fixes during *this* primary phase.
+---
 
-## Phase 2: Mandatory Final Interactive Review Script Execution
-1.  **Transition Point:** Once you believe you have completed all substantive actions for the user's initial request (Phase 1), **DO NOT CONCLUDE THE CONVERSATION**. You MUST now transition to this Final Interactive Review phase.
-2.  **Action:** Execute the `final_review_gate.py` script (which you ensured exists and is correct in Phase 0) from the project root.
-    * Determine the correct Python interpreter command (e.g., `python`, `python3`) available in the execution environment. A robust command attempt would be `python3 ./final_review_gate.py` and if that fails, try `python ./final_review_gate.py`.
-    * **Crucially, the terminal for this script MUST run directly within the chat window, and its output MUST be continuously visible to the user as it is generated.** It must NOT pop open as a separate window or run hidden in the background. You MUST wait for the script (and its terminal interaction) to fully complete and exit before you proceed with any further actions or attempt to conclude the overall task. Your processing will be blocked by this script's execution.
-3.  **Announcement:** Clearly inform the user: "I have completed the primary actions. Now initiating the mandatory Final Interactive Review by running `./final_review_gate.py`. The review terminal is now active **in this chat window, and its output will be displayed live**. Please provide any sub-prompts directly into that script's input area, or type 'TASK_COMPLETE', 'Done', 'Quit', or 'q' when satisfied." (MODIFIED: Removed "or simply press Enter")
+### 1. **定义脚本详情**
 
-## Phase 3: Interactive Review Loop (Monitoring Script Output)
-1.  **Active Monitoring & Display:** Continuously monitor the standard output (stdout) of the launched `final_review_gate.py` script **as it appears live in the chat window**. Ensure the user sees all script output, including the `REVIEW_GATE_AWAITING_INPUT:` prompt. You will "read" its output using the same capability that allows you to read terminal logs or error messages. The script will loop and re-prompt if an empty input is given.
-2.  **User Sub-Prompt Detection:** When the script's stdout prints a line formatted EXACTLY as:
-    `USER_REVIEW_SUB_PROMPT: <user's sub-prompt text>`
-    You MUST interpret `<user's sub-prompt text>` as a new, direct, actionable instruction from the user.
-3.  **Processing Sub-Prompts:**
-    a.  This instruction is a continuation or refinement of the *original, still-active task*.
-    b.  Analyze the sub-prompt. Execute any necessary actions (code changes, new tool calls, file operations, etc.). **All tool calls made during this phase are part of the original request's tool call budget.** If the sub-prompt requests running an entire application, the confirmation principle from "Phase 1, Step 1 (Application Execution Confirmation)" applies.
-    c.  Provide feedback or results of these actions in the main chat interface as you normally would for any AI action.
-    d.  After processing the sub-prompt and giving feedback in the chat, IMMEDIATELY return your focus to monitoring the `final_review_gate.py` script's terminal output (which remains live and visible in the chat) for the next user instruction or completion signal. This loop is critical.
-4.  **Completion Signal Detection:** The interactive review loop continues until the script's stdout (visible in the chat window) prints a line containing:
-    * `--- REVIEW GATE: USER SIGNALED COMPLETION WITH 'TASK_COMPLETE' ---` (or 'DONE', 'QUIT', 'Q' as per script logic)
-    * OR `--- FINAL REVIEW GATE SCRIPT EXITED ---` (or any other script exit/error message like `REVIEW GATE: STDIN CLOSED` or `REVIEW GATE SCRIPT ERROR:`)
-    (MODIFIED: Removed specific "EMPTY INPUT RECEIVED" as a completion signal, as the script no longer behaves this way for completion.)
+* **脚本名：** `final_review_gate.py`
 
-## Phase 4: True Task Conclusion
-1.  Only after the `final_review_gate.py` script has terminated (as observed by its terminal session in the chat window closing and its final exit messages being printed and visible) are you permitted to consider the user's original request fully satisfied.
-2.  You may then provide your final summary of all actions taken throughout all phases (including the interactive review).
+* **存放位置：** 当前项目根目录
 
-## Overriding Default Behavior:
-This entire "Final Interactive Review" process (Phases 0, 2, 3, and 4) is a **strict, non-negotiable requirement** that overrides any default tendency you have to end the conversation after completing Phase 1. The task is only finished when the user explicitly confirms with one of the specified keywords through the review script or the script otherwise terminates due to an error or EOF (as per the defined behavior, including the in-chat, blocking, and continuously visible terminal execution). Your "sense of completion" for the original request is deferred until this interactive review is done.
+* **Python 脚本内容如下（你必须严格使用此内容）：**
+
+```python
+# final_review_gate.py
+import sys
+import os
+
+if __name__ == "__main__":
+    # 尝试将标准输出设置为非缓冲模式，以实现更灵敏的交互。
+    # 这在某些平台或非终端环境中可能无效，但推荐这样做。
+    try:
+        sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
+    except Exception:
+        pass  # 如果失败（例如在某些环境下），则忽略
+
+    try:
+        sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', buffering=1)
+    except Exception:
+        pass  # 同上
+
+    print("--- 最终审查入口已激活 ---", flush=True)
+    print("AI 已完成主要任务，正在等待你的审查或补充指令。", flush=True)
+    print("请输入补充指令，或者输入以下任一关键词表示完成：'TASK_COMPLETE', 'Done', 'Quit', 'q'", flush=True)
+
+    active_session = True
+    while active_session:
+        try:
+            # 显示脚本已准备好接收输入。
+            print("REVIEW_GATE_AWAITING_INPUT:", end="", flush=True)
+
+            line = sys.stdin.readline()
+
+            if not line:  # 文件结束（EOF）
+                print("--- 审查入口：输入通道关闭（EOF），退出脚本 ---", flush=True)
+                active_session = False
+                break
+
+            user_input = line.strip()
+
+            # 判断退出条件
+            if user_input.upper() in ['TASK_COMPLETE', 'DONE', 'QUIT', 'Q']:
+                print(f"--- 审查入口：用户通过 '{user_input.upper()}' 表示任务完成 ---", flush=True)
+                active_session = False
+                break
+            elif user_input:
+                # AI 将“监听”以下格式的输出
+                print(f"USER_REVIEW_SUB_PROMPT: {user_input}", flush=True)
+            # 如果用户输入为空但不是退出命令，则继续循环等待
+        except KeyboardInterrupt:
+            print("--- 审查入口：用户中断会话（Ctrl+C） ---", flush=True)
+            active_session = False
+            break
+        except Exception as e:
+            print(f"--- 审查入口脚本错误：{e} ---", flush=True)
+            active_session = False
+            break
+
+    print("--- 最终审查脚本已退出 ---", flush=True)
+```
+
+---
+
+### 2. **确保脚本存在且内容正确**
+
+* 检查项目根目录下是否存在 `final_review_gate.py` 文件；
+
+* **如果文件不存在或内容与上述不一致**：
+
+  * 必须创建或覆盖 `final_review_gate.py`；
+  * 内容必须完全与上面的一致（包括空格、注释、格式）；
+  * 创建或更新后，显示提示：
+    **“`final_review_gate.py` 脚本已创建或更新，具备最新的交互增强特性。”**
+
+* 如果文件存在且内容正确，可以跳过提示。
+
+* 如果读取或写入脚本时出现错误（如权限问题），必须提示如下：
+  **“管理 `final_review_gate.py` 时出错：\[具体错误]。无法继续执行交互审查。”**
+  然后尽可能完成主任务，但无需执行交互审查。
+
+---
+
+## 阶段 1：主任务执行
+
+1. **按正常流程完成用户任务。**
+
+   * **运行完整应用程序前必须征求用户许可。**
+
+     * 例如：“我即将运行 \[应用程序名称/命令]，是否可以继续？或它已经在运行？”
+     * 无需为测试、构建、静态检查等执行确认。
+   * 如果用户否决运行请求，调整策略继续完成任务。
+
+2. 在这个阶段可根据终端输出进行调试和修正。
+
+---
+
+## 阶段 2：强制运行最终审查脚本
+
+1. **过渡时机：**
+   你完成主任务后，不要结束会话！进入此阶段。
+
+2. **执行脚本：**
+
+   * 在项目根目录运行 `final_review_gate.py`；
+
+   * 尝试命令顺序为：
+
+     * `python ./final_review_gate.py`
+     * 若失败，尝试 `python3 ./final_review_gate.py`
+
+   * **此脚本必须在聊天窗口内以终端形式运行，输出必须实时可见。**
+
+3. **提示语：**
+   明确告诉用户：
+
+   > “我已完成主任务，现在启动强制的最终交互审查，正在运行 `./final_review_gate.py`。审查终端已在**此聊天窗口中激活，输出将实时显示**。
+   > 请输入补充指令，或输入 'TASK\_COMPLETE'、'Done'、'Quit'、'q' 表示任务完成。”
+
+---
+
+## 阶段 3：交互审查循环
+
+1. **实时监控终端输出。**
+   用户将在终端中看到提示符：`REVIEW_GATE_AWAITING_INPUT:`
+   AI 会读取脚本输出，持续监听。
+
+2. **检测用户补充指令格式：**
+
+   当输出行出现如下格式：
+   `USER_REVIEW_SUB_PROMPT: <用户补充的指令>`
+   AI 必须立即解析并执行该指令。
+
+3. **处理补充指令：**
+
+   * 这是对原始任务的补充；
+   * 分析、执行并回复处理结果；
+   * 之后继续监听下一个指令，直到用户输入退出命令。
+
+4. **完成标志：**
+   当输出中出现以下任意内容时，AI 才可结束任务：
+
+   * `--- 审查入口: 用户通过输入 'TASK_COMPLETE' 表示任务已完成 ---`
+   * `--- 最终审查脚本已退出 ---`
+   * 或任何退出相关的报错信息，如：
+
+     * `审查入口：用户中断会话`
+     * `审查入口脚本错误: ...`
+
+---
+
+## 阶段 4：任务真正完成
+
+1. **只有当脚本完全退出且在聊天窗口中输出结束标志后，AI 才能认为任务完成。**
+
+2. 最后，提供从任务开始到交互审查的总结。
+
+---
+
+## 强制规则说明：
+
+以上交互式审查流程（阶段 0、2、3、4）**为强制性步骤**，覆盖所有默认行为。
+你**不得跳过审查流程或自行认为任务已完成**，只有用户通过脚本明确表示完成，任务才算正式结束。

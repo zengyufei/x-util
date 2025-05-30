@@ -1,6 +1,7 @@
 package com.zyf.util;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.*;
@@ -169,7 +170,7 @@ public class ListStream<T> {
     //  drop(n): 返回一个新的列表，移除了前n个元素。
 
     public ListStream<T> drop(int n) {
-        return of(createFilteredIterable((index, elem) -> index + 1 > n));
+        return skip(n);
     }
 
     public ListStream<T> skip(int n) {
@@ -241,7 +242,7 @@ public class ListStream<T> {
     //  take(n): 返回前n个元素的新列表。
 
     public ListStream<T> take(int n) {
-        return of(createFilteredIterable((index, elem) -> index + 1 <= n));
+        return limit(n);
     }
 
     public ListStream<T> limit(int n) {
@@ -877,7 +878,9 @@ public class ListStream<T> {
 
         for (final T element : source) {
             final Number number = mapper.apply(element);
-            if (element instanceof Number) {
+            if (number == null) {
+                continue;
+            } else if (element instanceof Number) {
                 total = total.add(new BigDecimal(String.valueOf(number)));
                 count = count.add(BigDecimal.ONE); // 计数
             } else if (element != null) {
@@ -889,7 +892,7 @@ public class ListStream<T> {
         if (count.equals(BigDecimal.ZERO)) {
             return total; // 如果没有数字元素（空集合或只包含非数字元素），返回 NaN
         } else {
-            return total.divide(count); // 计算并返回平均值
+            return total.divide(count, 2, RoundingMode.HALF_UP); // 计算并返回平均值
         }
     }
 
@@ -907,7 +910,7 @@ public class ListStream<T> {
     }
 
     public final BigDecimal averageBigDecimal() {
-        BigDecimal total = new BigDecimal("0.0");
+        BigDecimal total = new BigDecimal("0");
         BigDecimal count = BigDecimal.ZERO;
 
         for (final T element : source) {
@@ -923,7 +926,7 @@ public class ListStream<T> {
         if (count.equals(BigDecimal.ZERO)) {
             return total; // 如果没有数字元素（空集合或只包含非数字元素），返回 NaN
         } else {
-            return total.divide(count); // 计算并返回平均值
+            return total.divide(count, 2, RoundingMode.HALF_UP); // 计算并返回平均值
         }
     }
     //  count(): 返回集合中的元素数量。
@@ -952,7 +955,8 @@ public class ListStream<T> {
 
     //  count { predicate }: 返回满足给定条件的元素数量。
 
-    public long count(Predicate<T>... predicates) {
+    @SafeVarargs
+    public final long count(Predicate<T>... predicates) {
         if (isEmpty()) {
             return 0;
         }

@@ -7,6 +7,11 @@ import java.util.function.Function;
 public final class SortStream<T> {
     public <U extends Comparable<? super U>> Comparator<T> createComparator(
             Function<? super T, ? extends U> keyExtractor,
+            Sort order) {
+        return createComparator(keyExtractor, order, Sort.NullLast);
+    }
+    public <U extends Comparable<? super U>> Comparator<T> createComparator(
+            Function<? super T, ? extends U> keyExtractor,
             Sort order,
             Sort nullPosition) {
 
